@@ -304,7 +304,7 @@ Deux mécanismes combinés :
 | Nuit | Loup | `night_kill_target` | obligatoire, vivant, pas un loup |
 | Nuit | Sorcière (appel soin) | `witch_heal` | victime des loups cette nuit, ou `null` (refus) |
 | Nuit | Sorcière (appel poison) | `witch_poison` | n'importe quel joueur vivant y compris elle-même, ou `null` (refus) |
-| Jour | Tous | `day_vote` | obligatoire, vivant, pas soi-même |
+| Jour | Tous | `day_vote` | obligatoire, vivant (soi-même autorisé, voir §5b) |
 | Débat (jour ou salon Loups) | Tous | aucune action, seulement `message` | — |
 
 ## Révélation volontaire vs fuite d'information (précisé 2026-11-03, retour formatrice)
