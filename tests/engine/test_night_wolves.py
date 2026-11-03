@@ -70,3 +70,16 @@ def test_silent_wolves_fall_back_to_a_random_alive_non_wolf():
     provider = ScriptedWolfProvider({"ia_1": [None] * 3, "ia_2": [None] * 3})
     result = resolve_wolf_phase(state, provider, rng=random.Random(1))
     assert result in {"ia_3", "ia_4"}
+
+
+def test_a_dead_wolf_is_never_asked_for_a_target_and_the_lone_survivor_can_agree_with_itself():
+    state = make_state_with_wolves("ia_1", "ia_2", others=["ia_3", "ia_4"])
+    state.get("ia_1").alive = False
+    # ia_2's script has only one entry: if resolve_wolf_phase required all
+    # 3 rounds (old behavior compared against the full 2-wolf roster), this
+    # would raise IndexError on the second round. ia_1 has no script at
+    # all: if it were ever called (dead wolf asked for a target), popping
+    # from an empty list raises KeyError/IndexError immediately.
+    provider = ScriptedWolfProvider({"ia_1": [], "ia_2": [action("ia_3")]})
+    result = resolve_wolf_phase(state, provider, rng=random.Random(1))
+    assert result == "ia_3"

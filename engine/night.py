@@ -14,7 +14,7 @@ def _wolf_context(state: GameState, player: Player) -> dict:
     return {
         "phase": state.phase.value,
         "self_role": player.role.value,
-        "known_wolf_ids": [w.id for w in state.wolves() if w.id != player.id],
+        "known_wolf_ids": [w.id for w in state.wolves() if w.alive and w.id != player.id],
         "alive_players": [
             {"id": p.id, "pseudo": p.pseudo} for p in state.players.values() if p.alive
         ],
@@ -43,8 +43,8 @@ def resolve_wolf_phase(
     if rng is None:
         rng = random.Random()
 
-    wolves = state.wolves()
-    wolf_ids = {w.id for w in wolves}
+    wolves = [w for w in state.wolves() if w.alive]
+    wolf_ids = {w.id for w in state.wolves()}
     alive_non_wolf_ids = [p.id for p in state.players.values() if p.alive and p.id not in wolf_ids]
 
     all_valid_proposals: list[str] = []

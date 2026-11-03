@@ -95,3 +95,23 @@ def test_resolve_vote_two_way_tie_eliminates_nobody():
 def test_resolve_vote_three_way_tie_eliminates_nobody():
     assert resolve_vote({"a": "d", "b": "e", "c": "f", "d": "a", "e": "b", "f": "c"},
                          ["a", "b", "c", "d", "e", "f"]) is None
+
+
+def test_known_wolf_ids_in_day_context_excludes_dead_wolves():
+    players = {
+        "ia_1": Player(id="ia_1", pseudo="ia_1", is_human=False, role=Role.LOUP, personality=None),
+        "ia_2": Player(id="ia_2", pseudo="ia_2", is_human=False, role=Role.LOUP, personality=None, alive=False),
+        "ia_3": Player(id="ia_3", pseudo="ia_3", is_human=False, role=Role.VILLAGEOIS, personality=None),
+    }
+    state = GameState(players=players, phase=Phase.JOUR_DEBAT, cycle=1)
+    captured_contexts = []
+
+    class RecordingProvider:
+        def get_action(self, player_id, context):
+            captured_contexts.append((player_id, context))
+            return {"message": None, "action": None}
+
+    run_debate_round_robin(state, RecordingProvider(), is_time_up=lambda: False)
+
+    ia_1_context = next(ctx for pid, ctx in captured_contexts if pid == "ia_1")
+    assert ia_1_context["known_wolf_ids"] == []

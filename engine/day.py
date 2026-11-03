@@ -15,7 +15,7 @@ def _day_context(state: GameState, player: Player, legal_action_types: list[str]
     return {
         "phase": state.phase.value,
         "self_role": player.role.value,
-        "known_wolf_ids": [w.id for w in state.wolves() if w.id != player.id] if is_wolf else [],
+        "known_wolf_ids": [w.id for w in state.wolves() if w.alive and w.id != player.id] if is_wolf else [],
         "alive_players": [
             {"id": p.id, "pseudo": p.pseudo} for p in state.players.values() if p.alive
         ],
