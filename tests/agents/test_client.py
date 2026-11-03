@@ -1,0 +1,53 @@
+import pytest
+
+from agents.client import OpenRouterClient, OpenRouterError
+
+
+class FakeResponse:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+    def json(self):
+        return self._payload
+
+class FakeSession:
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.requests = []
+    def post(self, url, json, headers, timeout):
+        self.requests.append({"url": url, "json": json, "headers": headers, "timeout": timeout})
+        return self.responses.pop(0)
+
+def ok_response(text):
+    return FakeResponse(200, {"choices": [{"message": {"content": text}}]})
+
+def test_complete_returns_assistant_text_on_success():
+    session = FakeSession([ok_response("salut")])
+    client = OpenRouterClient(model="m/free", api_key="k", session=session)
+    assert client.complete("sys", "user") == "salut"
+    assert session.requests[0]["json"]["model"] == "m/free"
+    assert session.requests[0]["timeout"] == 15.0
+
+def test_complete_uses_fallback_model_after_primary_fails():
+    session = FakeSession([FakeResponse(500, {}), ok_response("secours")])
+    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
+    assert client.complete("sys", "user") == "secours"
+    assert session.requests[1]["json"]["model"] == "m2/free"
+
+def test_complete_raises_when_both_models_fail():
+    session = FakeSession([FakeResponse(500, {}), FakeResponse(500, {})])
+    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")
+
+def test_complete_raises_with_no_fallback_configured():
+    session = FakeSession([FakeResponse(500, {})])
+    client = OpenRouterClient(model="m/free", api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")
+
+def test_constructor_reads_model_from_environment(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_MODEL", "env/free")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "env-key")
+    client = OpenRouterClient(session=FakeSession([]))
+    assert client.model == "env/free"
