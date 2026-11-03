@@ -40,3 +40,20 @@ def test_new_game_starts_at_night_phase_cycle_one():
     state = roster.new_game("Umberto", rng=random.Random(1))
     assert state.phase == Phase.NUIT_LOUPS
     assert state.cycle == 1
+
+
+class RecordingRandom(random.Random):
+    def __init__(self, seed):
+        super().__init__(seed)
+        self.shuffle_lengths = []
+
+    def shuffle(self, x):
+        self.shuffle_lengths.append(len(x))
+        super().shuffle(x)
+
+
+def test_new_game_draws_roles_and_pairings_from_two_independent_shuffles():
+    rng = RecordingRandom(1)
+    roster.new_game("Umberto", rng=rng)
+    assert sorted(rng.shuffle_lengths) == [5, 6]
+    assert len(rng.shuffle_lengths) == 2
