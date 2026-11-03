@@ -49,3 +49,17 @@ def test_get_action_returns_none_on_unparseable_response():
     provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.VILLAGEOIS}, {"ia_1": "stratege"})
     result = provider.get_action("ia_1", {"phase": "jour_debat", "alive_players": [], "main_room_log": [], "self_role": "villageois"})
     assert result is None
+
+def test_get_action_surfaces_alive_player_ids_in_user_content():
+    client = FakeClient(['{"message": null, "action": null}'])
+    provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.VILLAGEOIS}, {"ia_1": "stratege"})
+    context = {
+        "phase": "jour_vote", "self_role": "villageois",
+        "alive_players": [{"id": "ia_1", "pseudo": "Fatima"}, {"id": "human", "pseudo": "Umberto"}],
+        "main_room_log": [],
+        "legal_action_types": ["day_vote"],
+    }
+    provider.get_action("ia_1", context)
+    user_content = client.calls[0]["user_content"]
+    assert "ia_1" in user_content
+    assert "Fatima" in user_content

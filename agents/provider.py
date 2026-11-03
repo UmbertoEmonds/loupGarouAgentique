@@ -60,9 +60,16 @@ class AIActionProvider:
         if wolf_room_log is not None and self._player_roles.get(player_id) == Role.LOUP:
             lines.extend(self._render_log(wolf_room_log, pseudo_lookup))
 
+        alive_players = context.get("alive_players", [])
+        roster = ", ".join(f'{player["id"]}:{player["pseudo"]}' for player in alive_players)
+        lines.append(f"Joueurs vivants (id:pseudo) : {roster}.")
+
         phase = context.get("phase")
         legal_action_types = context.get("legal_action_types", [])
-        lines.append(f"Phase actuelle : {phase}. Actions autorisées : {legal_action_types}.")
+        lines.append(
+            f"Phase actuelle : {phase}. Actions autorisées : {legal_action_types}. "
+            "Utilise l'id d'un joueur (pas son pseudo) comme \"target\" si tu soumets une action."
+        )
 
         return "\n".join(lines)
 
