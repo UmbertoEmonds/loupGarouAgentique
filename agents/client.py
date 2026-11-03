@@ -44,10 +44,14 @@ class OpenRouterClient:
     def _attempt(self, model: str, system_prompt: str, user_content: str):
         """Return the assistant text, or None if the attempt failed.
 
-        A non-200 status and a 200 response with an unexpected body are both
-        treated as a failed attempt.
+        A non-200 status, a 200 response with an unexpected body, and a
+        network-level failure (timeout, connection error, ...) raised by the
+        HTTP call itself are all treated identically as a failed attempt.
         """
-        response = self._post(model, system_prompt, user_content)
+        try:
+            response = self._post(model, system_prompt, user_content)
+        except requests.RequestException:
+            return None
         if response.status_code != 200:
             return None
         try:

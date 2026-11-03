@@ -1,4 +1,5 @@
 import pytest
+import requests
 
 from agents.client import OpenRouterClient, OpenRouterError
 
@@ -16,7 +17,10 @@ class FakeSession:
         self.requests = []
     def post(self, url, json, headers, timeout):
         self.requests.append({"url": url, "json": json, "headers": headers, "timeout": timeout})
-        return self.responses.pop(0)
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 def ok_response(text):
     return FakeResponse(200, {"choices": [{"message": {"content": text}}]})
@@ -63,3 +67,15 @@ def test_complete_uses_fallback_model_after_malformed_200_response():
     client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
     assert client.complete("sys", "user") == "secours"
     assert session.requests[1]["json"]["model"] == "m2/free"
+
+def test_complete_treats_a_network_timeout_as_a_failed_attempt_and_uses_fallback():
+    session = FakeSession([requests.exceptions.Timeout("timed out"), ok_response("secours")])
+    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
+    assert client.complete("sys", "user") == "secours"
+    assert session.requests[1]["json"]["model"] == "m2/free"
+
+def test_complete_raises_openroutererror_on_network_timeout_with_no_fallback():
+    session = FakeSession([requests.exceptions.Timeout("timed out")])
+    client = OpenRouterClient(model="m/free", api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")
