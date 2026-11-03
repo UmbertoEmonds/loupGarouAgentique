@@ -41,14 +41,29 @@ class OpenRouterClient:
             timeout=self.timeout,
         )
 
+    def _attempt(self, model: str, system_prompt: str, user_content: str):
+        """Return the assistant text, or None if the attempt failed.
+
+        A non-200 status and a 200 response with an unexpected body are both
+        treated as a failed attempt.
+        """
+        response = self._post(model, system_prompt, user_content)
+        if response.status_code != 200:
+            return None
+        try:
+            content = response.json()["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError, ValueError):
+            return None
+        return content if isinstance(content, str) else None
+
     def complete(self, system_prompt: str, user_content: str) -> str:
-        response = self._post(self.model, system_prompt, user_content)
-        if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
+        content = self._attempt(self.model, system_prompt, user_content)
+        if content is not None:
+            return content
 
         if self.fallback_model:
-            response = self._post(self.fallback_model, system_prompt, user_content)
-            if response.status_code == 200:
-                return response.json()["choices"][0]["message"]["content"]
+            content = self._attempt(self.fallback_model, system_prompt, user_content)
+            if content is not None:
+                return content
 
-        raise OpenRouterError(f"OpenRouter request failed (status {response.status_code})")
+        raise OpenRouterError("OpenRouter request failed on all configured models")

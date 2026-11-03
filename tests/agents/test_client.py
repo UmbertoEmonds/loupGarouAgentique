@@ -51,3 +51,15 @@ def test_constructor_reads_model_from_environment(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "env-key")
     client = OpenRouterClient(session=FakeSession([]))
     assert client.model == "env/free"
+
+def test_complete_raises_openroutererror_on_malformed_200_response():
+    session = FakeSession([FakeResponse(200, {"choices": []})])
+    client = OpenRouterClient(model="m/free", api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")
+
+def test_complete_uses_fallback_model_after_malformed_200_response():
+    session = FakeSession([FakeResponse(200, {"id": "x"}), ok_response("secours")])
+    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
+    assert client.complete("sys", "user") == "secours"
+    assert session.requests[1]["json"]["model"] == "m2/free"
