@@ -84,6 +84,19 @@ def test_collect_votes_fallback_is_random_when_nobody_voted_yet():
     assert all(v in {"ia_1", "ia_2"} for v in votes.values())
 
 
+def test_a_mismatched_action_type_during_voting_falls_back_instead_of_being_reinterpreted():
+    # ia_2's response claims action.type "night_kill_target" even though
+    # the engine is asking for a day_vote; this must not be silently
+    # reinterpreted as a vote just because it carries a legal target.
+    state = make_state_with_alive("ia_1", "ia_2")
+    provider = ScriptedProvider({
+        "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}],
+        "ia_2": [{"message": None, "action": {"type": "night_kill_target", "target": "ia_1"}}] * 2,
+    })
+    votes, fallback_used = collect_votes(state, provider, rng=random.Random(1))
+    assert fallback_used == ["ia_2"]
+
+
 def test_resolve_vote_eliminates_the_clear_majority():
     assert resolve_vote({"a": "c", "b": "c", "c": "a"}, ["a", "b", "c"]) == "c"
 

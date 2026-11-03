@@ -53,6 +53,29 @@ def test_witch_heals_and_poisons_in_the_same_night_independently():
     assert state.get("ia_1").witch_poison_used is True
 
 
+def test_a_mismatched_action_type_during_the_poison_sub_call_does_not_poison_anyone():
+    # The agent's response claims action.type "witch_heal" during the
+    # poison sub-call. Even though the target would be a legal poison
+    # victim, the claimed type doesn't match what the engine is asking
+    # for right now, so this must be treated exactly like "no valid
+    # submission" rather than being silently reinterpreted as a poison.
+    state = make_state_with_witch("ia_1", others=["ia_2", "ia_3"])
+    mismatched_poison = {"message": None, "action": {"type": "witch_heal", "target": "ia_3"}}
+    provider = ScriptedProvider({"ia_1": [decline(), mismatched_poison]})
+    healed, poisoned = resolve_witch_phase(state, provider, wolf_target="ia_2")
+    assert poisoned is None
+    assert state.get("ia_1").witch_poison_used is False
+
+
+def test_a_mismatched_action_type_during_the_heal_sub_call_does_not_heal_anyone():
+    state = make_state_with_witch("ia_1", others=["ia_2"])
+    mismatched_heal = {"message": None, "action": {"type": "witch_poison", "target": "ia_2"}}
+    provider = ScriptedProvider({"ia_1": [mismatched_heal, decline()]})
+    healed, poisoned = resolve_witch_phase(state, provider, wolf_target="ia_2")
+    assert healed is False
+    assert state.get("ia_1").witch_heal_used is False
+
+
 def test_witch_may_poison_herself():
     state = make_state_with_witch("ia_1", others=["ia_2"])
     provider = ScriptedProvider({"ia_1": [decline(), poison("ia_1")]})

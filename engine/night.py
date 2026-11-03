@@ -32,13 +32,16 @@ def resolve_wolf_phase(
     """Run the up-to-3-round wolf negotiation and return the night's kill target.
 
     Each round, every wolf gets a single (non-retried) call to
-    provider.get_action. A wolf whose response is missing or whose proposed
-    target is invalid simply contributes no valid proposal that round. If
-    both wolves have a valid proposal in the same round and they agree,
-    that target is returned immediately. After MAX_WOLF_ROUNDS rounds
-    without agreement, pick_wolf_tiebreak breaks the tie using every
-    distinct valid proposal ever made (falling back to the alive non-wolf
-    pool if nobody ever proposed anything).
+    provider.get_action. A wolf whose response is missing, whose claimed
+    action.type doesn't match night_kill_target, or whose proposed target
+    is invalid simply contributes no valid proposal that round. If both
+    wolves have a valid proposal in the same round and they agree, that
+    target is returned immediately. After MAX_WOLF_ROUNDS rounds without
+    agreement, pick_wolf_tiebreak breaks the tie using only each wolf's
+    LAST valid proposal (per spec §2a: "le moteur tire au sort entre les
+    deux dernières cibles proposées") -- not every distinct proposal made
+    across all rounds -- falling back to the alive non-wolf pool if nobody
+    ever proposed anything.
     """
     if rng is None:
         rng = random.Random()
@@ -47,7 +50,7 @@ def resolve_wolf_phase(
     wolf_ids = {w.id for w in state.wolves()}
     alive_non_wolf_ids = [p.id for p in state.players.values() if p.alive and p.id not in wolf_ids]
 
-    all_valid_proposals: list[str] = []
+    last_valid_proposal: dict[str, str] = {}
 
     for _round in range(MAX_WOLF_ROUNDS):
         round_proposals: dict[str, str] = {}
@@ -63,6 +66,8 @@ def resolve_wolf_phase(
                 state.wolf_room_log.append({"author": wolf.id, "text": message})
 
             action_payload = response.get("action") or {}
+            if action_payload.get("type") != ActionType.NIGHT_KILL_TARGET.value:
+                continue
             target = action_payload.get("target")
 
             try:
@@ -71,12 +76,12 @@ def resolve_wolf_phase(
                 continue
 
             round_proposals[wolf.id] = validated.target
-            all_valid_proposals.append(validated.target)
+            last_valid_proposal[wolf.id] = validated.target
 
         if len(round_proposals) == len(wolves) and len(set(round_proposals.values())) == 1:
             return next(iter(round_proposals.values()))
 
-    return pick_wolf_tiebreak(all_valid_proposals, alive_non_wolf_ids, rng)
+    return pick_wolf_tiebreak(list(last_valid_proposal.values()), alive_non_wolf_ids, rng)
 
 
 def _witch_context(
@@ -128,11 +133,14 @@ def resolve_witch_phase(
     if not witch.witch_heal_used:
         response = provider.get_action(witch.id, _witch_context(state, witch, wolf_target, ["witch_heal"]))
         if response is not None:
-            target = (response.get("action") or {}).get("target")
-            try:
-                validated = validate_action(state, witch.id, ActionType.WITCH_HEAL, target)
-            except ActionInvalid:
-                validated = None
+            action_payload = response.get("action") or {}
+            validated = None
+            if action_payload.get("type") == ActionType.WITCH_HEAL.value:
+                target = action_payload.get("target")
+                try:
+                    validated = validate_action(state, witch.id, ActionType.WITCH_HEAL, target)
+                except ActionInvalid:
+                    validated = None
             if validated is not None and validated.target is not None:
                 witch.witch_heal_used = True
                 healed = True
@@ -140,11 +148,14 @@ def resolve_witch_phase(
     if not witch.witch_poison_used:
         response = provider.get_action(witch.id, _witch_context(state, witch, wolf_target, ["witch_poison"]))
         if response is not None:
-            target = (response.get("action") or {}).get("target")
-            try:
-                validated = validate_action(state, witch.id, ActionType.WITCH_POISON, target)
-            except ActionInvalid:
-                validated = None
+            action_payload = response.get("action") or {}
+            validated = None
+            if action_payload.get("type") == ActionType.WITCH_POISON.value:
+                target = action_payload.get("target")
+                try:
+                    validated = validate_action(state, witch.id, ActionType.WITCH_POISON, target)
+                except ActionInvalid:
+                    validated = None
             if validated is not None and validated.target is not None:
                 witch.witch_poison_used = True
                 poisoned_id = validated.target

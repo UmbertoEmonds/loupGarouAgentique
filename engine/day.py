@@ -91,12 +91,14 @@ def collect_votes(
 
         validated_target: str | None = None
         if response is not None:
-            target = (response.get("action") or {}).get("target")
-            try:
-                validated = validate_action(state, player_id, ActionType.DAY_VOTE, target)
-                validated_target = validated.target
-            except ActionInvalid:
-                validated_target = None
+            action_payload = response.get("action") or {}
+            if action_payload.get("type") == ActionType.DAY_VOTE.value:
+                target = action_payload.get("target")
+                try:
+                    validated = validate_action(state, player_id, ActionType.DAY_VOTE, target)
+                    validated_target = validated.target
+                except ActionInvalid:
+                    validated_target = None
 
         if validated_target is not None:
             votes[player_id] = validated_target
