@@ -177,9 +177,11 @@ ou de passer. Le débat s'arrête quand le temps imparti est écoulé, ou
 plus tôt si tous les joueurs vivants passent consécutivement sur une
 passe complète.
 
-**b. Vote.** Chaque joueur vivant vote publiquement pour un autre joueur
-vivant (un joueur ne peut pas voter pour lui-même — mon choix, à
-confirmer) via une action structurée. Le vote est **obligatoire** : en
+**b. Vote.** Chaque joueur vivant vote publiquement pour un joueur
+vivant de son choix, **y compris lui-même** (décidé le 2026-11-03 :
+aucun cas stratégique ne le justifie vraiment, mais aucune raison non
+plus de l'interdire — ça ne contourne pas le vote obligatoire et évite
+une règle de validation supplémentaire) via une action structurée. Le vote est **obligatoire** : en
 cas de réponse invalide ou de timeout, une relance est tentée, puis en
 cas de nouvel échec le moteur attribue un vote de repli (jamais
 d'abstention), avec un **message d'erreur visible** à l'écran. Même
@@ -354,9 +356,40 @@ pour l'évaluation du critère "aucune fuite d'information".
 - Design visuel et UI.
 - Instrumentation du coût/token par partie.
 
-## Questions pour vous
+## Durée du débat et budget de temps (confirmé 2026-11-03)
 
-- Durée par défaut du débat de jour : je propose 3 minutes, à confirmer
-  ou ajuster.
-- Un joueur peut-il voter pour lui-même pendant le vote de jour ? J'ai
-  supposé que non — à confirmer.
+Durée par défaut du débat de jour : **3 minutes**, confirmée. Avec la
+règle de victoire en supériorité stricte (voir plus haut), une partie
+dure généralement 2 à 3 cycles nuit+jour complets. En comptant 3 min de
+débat + environ 30s-1min de vote + environ 30s-1min de résolution de
+nuit par cycle (latence IA comprise), un cycle dure environ 5 minutes,
+soit environ 15 minutes pour 3 cycles — cohérent avec la durée de
+partie visée. Ce calcul sert de justification à présenter à la
+formatrice plutôt qu'un chiffre arbitraire.
+
+## Cas de test à couvrir (ajouté 2026-11-03, retour formatrice)
+
+Liste de référence pour écrire les tests à l'implémentation, dérivée
+des décisions de ce document :
+
+- Égalité au vote de jour → aucune élimination, pas de second tour.
+- Les 2 loups proposent des cibles différentes → jusqu'à 3 tours de
+  négociation, puis tirage au sort entre leurs 2 dernières propositions
+  si toujours en désaccord.
+- Un loup tente de cibler l'autre loup → action rejetée par le moteur.
+- Sorcière soigne ET empoisonne la même nuit → les deux potions
+  s'appliquent indépendamment (2 appels séparés), chacune utilisable
+  une seule fois sur toute la partie.
+- Sorcière tente de se soigner elle-même → refusé.
+- Il ne reste qu'un seul loup vivant → la victoire villageois ne se
+  déclenche que quand les 2 loups sont morts, pas avant.
+- Parité 2 loups vs 2 autres : vérifier que la partie continue tant que
+  ce n'est pas strictement supérieur (`loups > autres`, pas `≥`).
+- Agent IA répond un JSON invalide / timeout → relance puis repli
+  (action aléatoire parmi les cibles valides, ou parmi les joueurs déjà
+  soupçonnés pour un vote).
+- Joueur humain ne répond pas dans le délai (60-90s) → même traitement
+  que l'échec IA.
+- Un agent tente une action illégale pour son rôle/phase (ex: un
+  villageois soumet une action de nuit) → rejetée.
+
