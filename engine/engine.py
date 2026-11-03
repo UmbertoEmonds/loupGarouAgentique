@@ -35,9 +35,9 @@ class GameEngine:
 
         if dead_ids:
             pseudos = ", ".join(state.players[pid].pseudo for pid in dead_ids)
-            text = f"{pseudos} died during the night."
+            text = f"{pseudos} est mort cette nuit." if len(dead_ids) == 1 else f"{pseudos} sont morts cette nuit."
         else:
-            text = "Nobody died during the night."
+            text = "Personne n'est mort cette nuit."
         state.main_room_log.append({"author": None, "text": text})
 
         return dead_ids
@@ -71,7 +71,7 @@ class GameEngine:
         if eliminated is not None:
             state.players[eliminated].alive = False
             state.main_room_log.append(
-                {"author": None, "text": f"{state.players[eliminated].pseudo} was voted out."}
+                {"author": None, "text": f"{state.players[eliminated].pseudo} a été éliminé par le vote."}
             )
 
         return eliminated, fallback_used
