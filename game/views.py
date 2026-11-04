@@ -1,5 +1,6 @@
 import secrets
 
+from django.conf import settings
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
@@ -10,6 +11,11 @@ MAX_PSEUDO_LEN = 20
 
 def _owner(request) -> str | None:
     return request.session.get("player_key")
+
+
+def privacy(request):
+    """Page d'information RGPD / AI Act (statique, accessible sans partie)."""
+    return render(request, "game/privacy.html", {"contact_email": settings.PRIVACY_CONTACT_EMAIL})
 
 
 def home(request):

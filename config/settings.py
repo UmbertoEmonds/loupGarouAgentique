@@ -72,6 +72,8 @@ HUMAN_TIMEOUT_S = int(os.environ.get("HUMAN_TIMEOUT_S", "75"))
 DEBATE_DURATION_S = int(os.environ.get("DEBATE_DURATION_S", "180"))
 PHASE_PAUSE_S = float(os.environ.get("PHASE_PAUSE_S", "2.5"))
 # FAKE_AI=1 : IA scriptée locale, pour tester l'interface sans clé OpenRouter.
+# Adresse affichée sur la page de confidentialité pour exercer ses droits (facultatif).
+PRIVACY_CONTACT_EMAIL = os.environ.get("PRIVACY_CONTACT_EMAIL", "")
 FAKE_AI = os.environ.get("FAKE_AI", "0") == "1"
 FAKE_AI_DELAY_S = float(os.environ.get("FAKE_AI_DELAY_S", "0.4"))
 
