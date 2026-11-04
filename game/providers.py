@@ -237,9 +237,10 @@ def describe_request(state, player, context: dict) -> dict:
 class AIHealth:
     """Suit si l'IA est joignable, sans toucher à agents/ ni à engine/.
 
-    `OpenRouterClient.complete` lève OpenRouterError quand TOUS les modèles de
-    la liste ont échoué (quota journalier, clé invalide, réseau...). Le fournisseur
-    d'agents avale cette erreur en `None`, que le moteur traite comme un simple
+    Le client lève une LLMProviderError quand TOUS les modèles de TOUS les
+    fournisseurs configurés (OpenRouter, puis Groq en repli) ont échoué (quota
+    journalier, clé invalide, réseau...). Le fournisseur d'agents avale cette
+    erreur en `None`, que le moteur traite comme un simple
     passage : sans ce suivi, le joueur ne verrait que des IA muettes.
     """
 
@@ -254,18 +255,19 @@ class AIHealth:
 
 
 class MonitoredClient:
-    """Enveloppe un client OpenRouter et alimente AIHealth (même interface `complete`)."""
+    """Enveloppe un client LLM (OpenRouter, éventuellement avec repli Groq) et
+    alimente AIHealth ; même interface `complete`."""
 
     def __init__(self, client, health: AIHealth):
         self._client = client
         self._health = health
 
     def complete(self, system_prompt: str, user_content: str) -> str:
-        from agents.client import OpenRouterError
+        from agents.client import LLMProviderError
 
         try:
             text = self._client.complete(system_prompt, user_content)
-        except OpenRouterError:
+        except LLMProviderError:
             self._health.consecutive_failures += 1
             raise
         self._health.consecutive_failures = 0
@@ -273,15 +275,24 @@ class MonitoredClient:
 
 
 def build_ai_provider(state, fake: bool, fake_delay_s: float = 0.4, health: AIHealth | None = None):
-    """IA réelle (OpenRouter) ou scriptée, selon la configuration."""
+    """IA réelle (OpenRouter, avec repli Groq) ou scriptée, selon la configuration."""
     if fake:
         return FakeAIProvider(delay_s=fake_delay_s)
-    from agents.client import OpenRouterClient
+    import os
+
+    from agents.client import FallbackClient, GroqClient, OpenRouterClient
     from agents.provider import AIActionProvider
+
+    client = OpenRouterClient()
+    # Repli Groq seulement si une clé est configurée : OpenRouter épuise déjà
+    # sa propre liste de modèles (OPENROUTER_MODELS) avant d'échouer, donc ce
+    # repli ne sert que si c'est le compte OpenRouter entier qui est à quota.
+    if os.environ.get("GROQ_API_KEY"):
+        client = FallbackClient([client, GroqClient()])
 
     ia = {pid: p for pid, p in state.players.items() if not p.is_human}
     provider = AIActionProvider(
-        MonitoredClient(OpenRouterClient(), health or AIHealth()),
+        MonitoredClient(client, health or AIHealth()),
         {pid: p.pseudo for pid, p in ia.items()},
         {pid: p.role for pid, p in ia.items()},
         {pid: p.personality for pid, p in ia.items()},

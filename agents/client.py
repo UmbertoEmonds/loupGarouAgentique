@@ -3,9 +3,20 @@ import os
 import requests
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
-class OpenRouterError(Exception):
+class LLMProviderError(Exception):
+    """Base commune : une tentative d'appel à un fournisseur de LLM a échoué
+    sur tous ses modèles configurés. Permet à FallbackClient de passer au
+    fournisseur suivant sans connaître le type d'erreur précis."""
+
+
+class OpenRouterError(LLMProviderError):
+    pass
+
+
+class GroqError(LLMProviderError):
     pass
 
 
@@ -22,7 +33,21 @@ def _parse_model_list(value: str | None) -> list[str]:
     return [m.strip() for m in value.split(",") if m.strip()]
 
 
-class OpenRouterClient:
+class _ChatCompletionClient:
+    """Base partagée par les clients de fournisseurs LLM "chat completions"
+    façon OpenAI (model + messages, header Authorization Bearer) : seuls
+    l'URL, les variables d'environnement et le type d'erreur changent d'un
+    fournisseur à l'autre (OpenRouter, Groq, ...). Une sous-classe définit
+    URL, MODELS_ENV_VAR, API_KEY_ENV_VAR, ERROR_CLS, et éventuellement
+    DEFAULT_MODELS (utilisés si la variable d'environnement de modèles est
+    absente et qu'aucune liste n'est passée explicitement)."""
+
+    URL: str
+    MODELS_ENV_VAR: str
+    API_KEY_ENV_VAR: str
+    ERROR_CLS: type[LLMProviderError] = LLMProviderError
+    DEFAULT_MODELS: tuple[str, ...] = ()
+
     def __init__(
         self,
         models: list[str] | None = None,
@@ -32,15 +57,15 @@ class OpenRouterClient:
     ):
         self.models = (
             models if models is not None
-            else _parse_model_list(os.environ.get("OPENROUTER_MODELS"))
+            else _parse_model_list(os.environ.get(self.MODELS_ENV_VAR)) or list(self.DEFAULT_MODELS)
         )
-        self.api_key = api_key if api_key is not None else os.environ.get("OPENROUTER_API_KEY")
+        self.api_key = api_key if api_key is not None else os.environ.get(self.API_KEY_ENV_VAR)
         self.timeout = timeout
         self.session = session if session is not None else requests.Session()
 
     def _post(self, model: str, system_prompt: str, user_content: str):
         return self.session.post(
-            OPENROUTER_URL,
+            self.URL,
             json={
                 "model": model,
                 "messages": [
@@ -78,4 +103,45 @@ class OpenRouterClient:
             if content is not None:
                 return content
 
-        raise OpenRouterError("OpenRouter request failed on all configured models")
+        raise self.ERROR_CLS(f"{type(self).__name__} request failed on all configured models")
+
+
+class OpenRouterClient(_ChatCompletionClient):
+    URL = OPENROUTER_URL
+    MODELS_ENV_VAR = "OPENROUTER_MODELS"
+    API_KEY_ENV_VAR = "OPENROUTER_API_KEY"
+    ERROR_CLS = OpenRouterError
+
+
+class GroqClient(_ChatCompletionClient):
+    """Repli quand OpenRouter est hors service (quota du *compte* OpenRouter
+    atteint, pas seulement celui d'un modèle — déjà couvert par la liste de
+    modèles d'OpenRouterClient). Groq expose une API compatible OpenAI avec
+    un palier gratuit sans carte bancaire."""
+
+    URL = GROQ_URL
+    MODELS_ENV_VAR = "GROQ_MODELS"
+    API_KEY_ENV_VAR = "GROQ_API_KEY"
+    ERROR_CLS = GroqError
+    DEFAULT_MODELS = ("llama-3.1-8b-instant",)
+
+
+class FallbackClient:
+    """Enchaîne plusieurs clients `complete()` : si le premier échoue (tous
+    ses modèles épuisés), tente le suivant. Sert à ajouter un fournisseur de
+    secours indépendant (ex: Groq) quand c'est le compte OpenRouter entier
+    qui est à quota, pas juste un modèle."""
+
+    def __init__(self, clients: list):
+        if not clients:
+            raise ValueError("FallbackClient needs at least one client")
+        self.clients = clients
+
+    def complete(self, system_prompt: str, user_content: str) -> str:
+        error: LLMProviderError | None = None
+        for client in self.clients:
+            try:
+                return client.complete(system_prompt, user_content)
+            except LLMProviderError as exc:
+                error = exc
+        raise error

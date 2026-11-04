@@ -37,8 +37,11 @@ class SessionTests(SimpleTestCase):
         session.start("owner", "Alice")
         snap = session.snapshot()
         others = [p for p in snap["players"] if not p["is_me"] and p["alive"]]
-        self.assertTrue(all(p["role"] is None for p in others))
-        if snap["me"]["role"] != "loup":
+        if snap["me"]["role"] == "loup":
+            # Un loup connaît déjà ses alliés : seuls les autres loups sont révélés.
+            self.assertTrue(all((p["role"] == "loup") == (p["pseudo"] in snap["wolf_mates"]) for p in others))
+        else:
+            self.assertTrue(all(p["role"] is None for p in others))
             self.assertIsNone(snap["wolf_log"])
 
     def test_second_start_refused_while_running_then_allowed_after_abandon(self):

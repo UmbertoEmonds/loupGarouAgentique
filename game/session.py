@@ -174,16 +174,19 @@ class GameSession:
             return {"author": names.get(e["author"]) if e["author"] else None,
                     "author_id": e["author"], "text": e["text"]}
 
+        wolf_visible = me.role == Role.LOUP
+
         players = []
         for p in state.players.values():
-            reveal = over or not p.alive or p.id == me.id
+            # Un loup connaît déjà ses alliés loups (wolf_mates, wolf_log) :
+            # cacher leur rôle dans la liste du village ne protège rien, ça
+            # oblige juste à recouper avec l'Antre des loups.
+            reveal = over or not p.alive or p.id == me.id or (wolf_visible and p.role == Role.LOUP)
             players.append({
                 "id": p.id, "pseudo": p.pseudo, "alive": p.alive, "is_me": p.id == me.id,
                 "role": p.role.value if reveal else None,
                 "role_label": ROLE_LABELS[p.role] if reveal else None,
             })
-
-        wolf_visible = me.role == Role.LOUP
         pending = self.human.pending if self.human else None
         winner = state.winner
         return {

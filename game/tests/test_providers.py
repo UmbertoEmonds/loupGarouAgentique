@@ -4,8 +4,9 @@ import time
 
 from django.test import SimpleTestCase
 
+from agents.client import FallbackClient, GroqClient, OpenRouterClient
 from engine.engine import GameEngine
-from game.providers import HumanProvider, RouterProvider, build_response
+from game.providers import HumanProvider, RouterProvider, build_ai_provider, build_response
 
 VOTE = {"kind": "vote", "allow_message": False, "targets": [{"id": "ia_1", "pseudo": "A"}]}
 
@@ -176,3 +177,59 @@ class AIHealthTests(SimpleTestCase):
         client.fail = False
         self.assertEqual(monitored.complete("s", "u"), "{}")
         self.assertFalse(health.down)  # un succès remet à zéro
+
+
+class BuildAIProviderTests(SimpleTestCase):
+    """build_ai_provider ne doit activer le repli Groq que si une clé est
+    configurée : sinon FallbackClient tenterait Groq pour rien à chaque appel
+    OpenRouter raté."""
+
+    def _state(self):
+        engine = GameEngine(rng=random.Random(1))
+        engine.start("Umberto")
+        return engine.state
+
+    def test_no_groq_key_uses_a_plain_openrouter_client(self):
+        import os
+        old = os.environ.pop("GROQ_API_KEY", None)
+        try:
+            provider = build_ai_provider(self._state(), fake=False)
+            self.assertIsInstance(provider._client._client, OpenRouterClient)
+        finally:
+            if old is not None:
+                os.environ["GROQ_API_KEY"] = old
+
+    def test_groq_key_configured_wraps_openrouter_with_a_groq_fallback(self):
+        import os
+        old = os.environ.get("GROQ_API_KEY")
+        os.environ["GROQ_API_KEY"] = "k"
+        try:
+            provider = build_ai_provider(self._state(), fake=False)
+            self.assertIsInstance(provider._client._client, FallbackClient)
+            self.assertIsInstance(provider._client._client.clients[0], OpenRouterClient)
+            self.assertIsInstance(provider._client._client.clients[1], GroqClient)
+        finally:
+            if old is None:
+                os.environ.pop("GROQ_API_KEY", None)
+            else:
+                os.environ["GROQ_API_KEY"] = old
+
+
+class AIHealthWithFallbackTests(SimpleTestCase):
+    def test_failure_of_the_whole_openrouter_then_groq_chain_counts_as_down(self):
+        from agents.client import FallbackClient, GroqError, LLMProviderError, OpenRouterError
+        from game.providers import AIHealth, MonitoredClient
+
+        class Failing:
+            def __init__(self, error):
+                self.error = error
+
+            def complete(self, system_prompt, user_content):
+                raise self.error("boom")
+
+        health = AIHealth()
+        chain = MonitoredClient(FallbackClient([Failing(OpenRouterError), Failing(GroqError)]), health)
+        for _ in range(2):
+            with self.assertRaises(LLMProviderError):
+                chain.complete("s", "u")
+        self.assertTrue(health.down)
