@@ -120,3 +120,17 @@ class PrivacyPageTests(SimpleTestCase):
         resp = Client().get("/")
         self.assertContains(resp, "/confidentialite/")
         self.assertContains(resp, "en savoir plus sur la confidentialité et l'usage des données")
+
+
+class SelfHostedFontsTests(SimpleTestCase):
+    def test_pages_do_not_call_google_fonts(self):
+        for url in ("/", "/confidentialite/"):
+            body = Client().get(url).content.decode()
+            self.assertNotIn("googleapis", body)
+            self.assertNotIn("gstatic", body)
+
+    def test_font_files_are_collectable_static_files(self):
+        from django.contrib.staticfiles import finders
+
+        for name in ("lilita-one-latin.woff2", "nunito-latin.woff2"):
+            self.assertIsNotNone(finders.find(f"game/fonts/{name}"), name)

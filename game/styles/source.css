@@ -2,6 +2,23 @@
 @source "../templates";
 @source "../static/game";
 
+/* Polices hébergées par l'application (aucun appel à Google Fonts : voir /confidentialite/).
+   Sous-ensemble « latin » : couvre le français (accents, œ, « », …). */
+@font-face {
+  font-family: "Lilita One";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/game/fonts/lilita-one-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 200 1000; /* police variable : un seul fichier pour tous les graisses */
+  font-display: swap;
+  src: url("/static/game/fonts/nunito-latin.woff2") format("woff2");
+}
+
 /* Palette tirée de la boîte du jeu de cartes « Les Loups-Garous de Thiercelieux » :
    fond charbon, rouge sang, lettrage crème-orangé, œil magenta du loup. */
 @theme {
