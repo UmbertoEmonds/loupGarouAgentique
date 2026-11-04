@@ -1,9 +1,11 @@
+import random
 import threading
 import time
 
 from django.test import SimpleTestCase
 
-from game.providers import HumanProvider, build_response
+from engine.engine import GameEngine
+from game.providers import HumanProvider, RouterProvider, build_response
 
 VOTE = {"kind": "vote", "allow_message": False, "targets": [{"id": "ia_1", "pseudo": "A"}]}
 
@@ -99,3 +101,49 @@ class HumanProviderTests(SimpleTestCase):
         human.cancel()
         t.join(2)
         self.assertEqual(results, [None])
+
+
+class _StubAI:
+    def get_action(self, player_id, context):
+        return {"message": None, "action": None}
+
+
+class RouterProviderTests(SimpleTestCase):
+    """L'indicateur "X réfléchit" ne doit jamais trahir un rôle : la nuit,
+    seuls les loups puis la sorcière sont appelés (jamais un villageois),
+    donc nommer le joueur appelé la nuit révélerait son rôle à coup sûr.
+    Le jour, tout le monde est appelé à chaque phase : nommer le joueur ne
+    fuite rien."""
+
+    def _ai_player_id(self, engine):
+        return next(pid for pid, p in engine.state.players.items() if not p.is_human)
+
+    def _router(self, engine, seen):
+        return RouterProvider(
+            engine, _StubAI(), human=None, stop=threading.Event(),
+            on_thinking=lambda name: seen.append(name),
+        )
+
+    def test_night_calls_never_reveal_the_players_name(self):
+        engine = GameEngine(rng=random.Random(1))
+        engine.start("Umberto")
+        ai_player_id = self._ai_player_id(engine)
+        seen = []
+        router = self._router(engine, seen)
+
+        router.get_action(ai_player_id, {"phase": "nuit_loups"})
+        router.get_action(ai_player_id, {"phase": "nuit_sorciere"})
+
+        self.assertEqual(seen, [])
+
+    def test_day_calls_reveal_the_players_name(self):
+        engine = GameEngine(rng=random.Random(1))
+        engine.start("Umberto")
+        ai_player_id = self._ai_player_id(engine)
+        pseudo = engine.state.players[ai_player_id].pseudo
+        seen = []
+        router = self._router(engine, seen)
+
+        router.get_action(ai_player_id, {"phase": "jour_debat"})
+
+        self.assertEqual(seen, [pseudo, None])

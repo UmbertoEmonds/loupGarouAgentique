@@ -13,7 +13,10 @@ import threading
 import time
 import uuid
 
+from engine.models import Phase
+
 MAX_MESSAGE_LEN = 500
+NIGHT_PHASES = {Phase.NUIT_LOUPS.value, Phase.NUIT_SORCIERE.value}
 
 
 class HumanProvider:
@@ -173,11 +176,18 @@ class RouterProvider:
         state = self.engine.state
         player = state.get(player_id)
         if not player.is_human:
-            self.on_thinking(player.pseudo)
+            # La nuit, seuls les loups puis la sorcière sont appelés : nommer
+            # qui "réfléchit" trahirait leur rôle (un villageois n'est jamais
+            # appelé la nuit). Le jour, tout le monde est appelé à chaque
+            # phase, donc nommer le joueur ne fuite rien.
+            show_name = context["phase"] not in NIGHT_PHASES
+            if show_name:
+                self.on_thinking(player.pseudo)
             try:
                 return self.ai.get_action(player_id, context)
             finally:
-                self.on_thinking(None)
+                if show_name:
+                    self.on_thinking(None)
 
         pending = describe_request(state, player, context)
         key = (state.cycle, context["phase"], tuple(context.get("legal_action_types") or []))
