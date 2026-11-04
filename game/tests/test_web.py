@@ -91,3 +91,8 @@ class WebSocketTests(SimpleTestCase):
         self.assertGreater(answered, 0)
         self.assertIn(payload["winner"], ("loups", "villageois"))
         await comm.disconnect()
+
+
+class HomeWarningTests(SimpleTestCase):
+    def test_home_warns_that_all_other_players_are_ai(self):
+        self.assertContains(Client().get("/"), "tous les autres joueurs sont des IA")

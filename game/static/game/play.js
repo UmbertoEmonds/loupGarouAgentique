@@ -147,6 +147,7 @@
     const s = state;
     if (!s || !s.active) { location.href = "/"; return; }
     $("scene").classList.toggle("night", s.is_night);
+    $("ai-down").classList.toggle("hidden", !s.ai_down);
     $("phase").textContent = (s.is_night ? "🌙 " : "☀️ ") + s.phase_label + " · tour " + s.cycle;
     $("role").textContent = (ROLE_EMOJI[s.me.role] || "") + " Tu es " + s.me.role_label;
     renderPlayers(s);

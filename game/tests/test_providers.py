@@ -147,3 +147,32 @@ class RouterProviderTests(SimpleTestCase):
         router.get_action(ai_player_id, {"phase": "jour_debat"})
 
         self.assertEqual(seen, [pseudo, None])
+
+
+class AIHealthTests(SimpleTestCase):
+    class _Client:
+        def __init__(self, fail):
+            self.fail = fail
+
+        def complete(self, system_prompt, user_content):
+            from agents.client import OpenRouterError
+
+            if self.fail:
+                raise OpenRouterError("boom")
+            return "{}"
+
+    def test_down_only_after_consecutive_failures_and_recovers(self):
+        from agents.client import OpenRouterError
+        from game.providers import AIHealth, MonitoredClient
+
+        health, client = AIHealth(), self._Client(fail=True)
+        monitored = MonitoredClient(client, health)
+        with self.assertRaises(OpenRouterError):
+            monitored.complete("s", "u")
+        self.assertFalse(health.down)  # un seul échec : pas d'alerte
+        with self.assertRaises(OpenRouterError):
+            monitored.complete("s", "u")
+        self.assertTrue(health.down)
+        client.fail = False
+        self.assertEqual(monitored.complete("s", "u"), "{}")
+        self.assertFalse(health.down)  # un succès remet à zéro

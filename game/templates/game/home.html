@@ -6,7 +6,12 @@
   <h1 class="logo-text text-6xl leading-none sm:text-7xl">Loups-Garous</h1>
   <p class="mt-2 text-parchment/80">Un village, deux loups cachés… et cinq IA qui jouent contre toi.</p>
 
-  <section class="panel mt-8 w-full p-6 text-left">
+  <div role="note" class="mt-8 w-full rounded-xl border-2 border-blood bg-black px-4 py-3 text-left shadow-lg">
+    <p class="font-display text-lg text-blood-light">⚠️ Attention : tous les autres joueurs sont des IA</p>
+    <p class="mt-1 text-sm text-cream/90">Tu es le seul humain de la partie. Les 5 autres « joueurs » sont des intelligences artificielles. Leurs messages sont générés par des modèles de langage et peuvent être imprécis ou étranges.</p>
+  </div>
+
+  <section class="panel mt-4 w-full p-6 text-left">
     {% if error == "pseudo" %}<p class="mb-3 rounded-lg bg-blood-dark/70 px-3 py-2 text-sm">Choisis un pseudo pour jouer.</p>{% endif %}
     {% if error == "occupe" or busy %}
       <p class="mb-1 font-display text-xl text-ember">Partie déjà en cours</p>
