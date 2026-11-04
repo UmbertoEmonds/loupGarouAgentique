@@ -6,6 +6,7 @@ est vérifiée plus tard par engine/actions.py.
 """
 
 import json
+import re
 
 from engine.models import ActionType
 
@@ -17,6 +18,24 @@ class ResponseParseError(Exception):
 _TOP_KEYS = {"message", "action"}
 _ACTION_KEYS = {"type", "target"}
 _VALID_ACTION_TYPES = {action_type.value for action_type in ActionType}
+
+# Le prompt général exige "Réponds toujours en français." Certains modèles
+# gratuits (souvent entraînés en majorité sur du chinois) dérivent parfois
+# de langue en cours de génération malgré la consigne. Un message dominé
+# par des caractères CJK n'est pas un message jouable en français : on le
+# rejette comme un JSON mal formé, ce qui déclenche le même repli que pour
+# toute réponse invalide (voir agents/provider.py et le docstring de
+# resolve_wolf_phase/collect_votes pour le mécanisme de repli).
+_CJK_CHAR = re.compile(r"[一-鿿]")
+_CJK_MESSAGE_RATIO_THRESHOLD = 0.2
+
+
+def _is_dominated_by_chinese(message: str) -> bool:
+    non_space = [c for c in message if not c.isspace()]
+    if not non_space:
+        return False
+    cjk_count = sum(1 for c in non_space if _CJK_CHAR.match(c))
+    return cjk_count / len(non_space) > _CJK_MESSAGE_RATIO_THRESHOLD
 
 
 def parse_response(raw_text: str) -> dict:
@@ -38,6 +57,8 @@ def parse_response(raw_text: str) -> dict:
     message = data["message"]
     if message is not None and not isinstance(message, str):
         raise ResponseParseError("'message' must be a string or null")
+    if message and _is_dominated_by_chinese(message):
+        raise ResponseParseError("'message' appears to have drifted into Chinese, not French")
 
     action = data["action"]
     if action is None:
