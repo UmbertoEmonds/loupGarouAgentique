@@ -66,7 +66,7 @@
         (p.alive ? "bg-ink/60" : "bg-black/50 opacity-60"));
       const badge = el("span", "text-xl", p.alive ? (p.role ? ROLE_EMOJI[p.role] : "🙂") : "💀");
       const info = el("div", "min-w-0 leading-tight");
-      info.append(el("div", "truncate font-semibold " + (p.alive ? "" : "line-through"), p.pseudo + (p.is_me ? " (toi)" : "")));
+      info.append(el("div", "truncate font-semibold " + (p.alive ? "" : "line-through"), p.pseudo + (p.is_me ? " (toi)" : " (ia)")));
       info.append(el("div", "text-xs text-parchment/70", p.role_label || (p.alive ? "En vie" : "")));
       li.append(badge, info);
       if (s.thinking === p.pseudo) li.classList.add("pulse-eye");
