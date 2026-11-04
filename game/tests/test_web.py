@@ -29,6 +29,11 @@ class ViewTests(SimpleTestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertIn("erreur=pseudo", resp["Location"])
 
+    def test_play_page_shows_ai_warning(self):
+        owner = Client()
+        owner.post("/nouvelle-partie/", {"pseudo": "Alice"})
+        self.assertContains(owner.get("/jouer/"), "Tous les autres joueurs sont des IA")
+
     def test_second_visitor_sees_game_in_progress(self):
         owner, other = Client(), Client()
         self.assertEqual(owner.post("/nouvelle-partie/", {"pseudo": "Alice"}).status_code, 302)
@@ -88,6 +93,12 @@ class WebSocketTests(SimpleTestCase):
             answered += 1
         else:
             self.fail("la partie ne s'est pas terminée")
-        self.assertGreater(answered, 0)
+        # Les rôles sont aléatoires : un humain tué dès la nuit 1 n'est jamais sollicité.
+        self.assertTrue(answered > 0 or not payload["me"]["alive"])
         self.assertIn(payload["winner"], ("loups", "villageois"))
         await comm.disconnect()
+
+
+class HomeWarningTests(SimpleTestCase):
+    def test_home_warns_that_all_other_players_are_ai(self):
+        self.assertContains(Client().get("/"), "tous les autres joueurs sont des IA")

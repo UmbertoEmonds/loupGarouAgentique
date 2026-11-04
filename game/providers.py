@@ -234,7 +234,47 @@ def describe_request(state, player, context: dict) -> dict:
     }
 
 
-def build_ai_provider(state, fake: bool, fake_delay_s: float = 0.4):
+class AIHealth:
+    """Suit si l'IA est joignable, sans toucher à agents/ ni à engine/.
+
+    Le client lève une LLMProviderError quand TOUS les modèles de TOUS les
+    fournisseurs configurés (OpenRouter, puis Groq en repli) ont échoué (quota
+    journalier, clé invalide, réseau...). Le fournisseur d'agents avale cette
+    erreur en `None`, que le moteur traite comme un simple
+    passage : sans ce suivi, le joueur ne verrait que des IA muettes.
+    """
+
+    THRESHOLD = 2  # échecs consécutifs avant d'alerter (un raté isolé ne compte pas)
+
+    def __init__(self):
+        self.consecutive_failures = 0
+
+    @property
+    def down(self) -> bool:
+        return self.consecutive_failures >= self.THRESHOLD
+
+
+class MonitoredClient:
+    """Enveloppe un client LLM (OpenRouter, éventuellement avec repli Groq) et
+    alimente AIHealth ; même interface `complete`."""
+
+    def __init__(self, client, health: AIHealth):
+        self._client = client
+        self._health = health
+
+    def complete(self, system_prompt: str, user_content: str) -> str:
+        from agents.client import LLMProviderError
+
+        try:
+            text = self._client.complete(system_prompt, user_content)
+        except LLMProviderError:
+            self._health.consecutive_failures += 1
+            raise
+        self._health.consecutive_failures = 0
+        return text
+
+
+def build_ai_provider(state, fake: bool, fake_delay_s: float = 0.4, health: AIHealth | None = None):
     """IA réelle (OpenRouter, avec repli Groq) ou scriptée, selon la configuration."""
     if fake:
         return FakeAIProvider(delay_s=fake_delay_s)
@@ -252,7 +292,7 @@ def build_ai_provider(state, fake: bool, fake_delay_s: float = 0.4):
 
     ia = {pid: p for pid, p in state.players.items() if not p.is_human}
     provider = AIActionProvider(
-        client,
+        MonitoredClient(client, health or AIHealth()),
         {pid: p.pseudo for pid, p in ia.items()},
         {pid: p.role for pid, p in ia.items()},
         {pid: p.personality for pid, p in ia.items()},

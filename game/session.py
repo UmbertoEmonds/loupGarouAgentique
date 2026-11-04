@@ -18,7 +18,7 @@ from django.conf import settings
 
 from engine.engine import GameEngine
 from engine.models import Camp, Phase, Role
-from game.providers import HumanProvider, RouterProvider, build_ai_provider
+from game.providers import AIHealth, HumanProvider, RouterProvider, build_ai_provider
 
 GROUP = "game"
 ROLE_LABELS = {Role.LOUP: "Loup-Garou", Role.SORCIERE: "Sorcière", Role.VILLAGEOIS: "Villageois"}
@@ -42,6 +42,7 @@ class GameSession:
         self.owner: str | None = None  # clé de session Django du joueur
         self.human: HumanProvider | None = None
         self.thinking: str | None = None
+        self.ai_health = AIHealth()
         self._gen = object()  # identifie la partie courante (les anciens threads s'arrêtent)
         self._stop = threading.Event()
         self.running = False
@@ -78,7 +79,8 @@ class GameSession:
             self.engine = GameEngine(debate_duration_s=settings.DEBATE_DURATION_S, rng=random.Random())
             state = self.engine.start(pseudo)
             self.human = HumanProvider(settings.HUMAN_TIMEOUT_S, on_change=self.publish)
-            ai = build_ai_provider(state, fake=settings.FAKE_AI, fake_delay_s=settings.FAKE_AI_DELAY_S)
+            ai = build_ai_provider(state, fake=settings.FAKE_AI, fake_delay_s=settings.FAKE_AI_DELAY_S,
+                                  health=self.ai_health)
             provider = RouterProvider(
                 self.engine, ai, self.human, stop,
                 on_thinking=lambda name: self._set_thinking(gen, name),
@@ -207,6 +209,7 @@ class GameSession:
             "wolf_log": [entry(e) for e in list(state.wolf_room_log)] if wolf_visible else None,
             "wolf_mates": [p.pseudo for p in state.wolves() if p.id != me.id] if wolf_visible else None,
             "thinking": self.thinking,
+            "ai_down": self.ai_health.down,
             "pending": pending,
             "debate_deadline": self.debate_deadline if state.phase == Phase.JOUR_DEBAT else None,
             "running": self.running,
