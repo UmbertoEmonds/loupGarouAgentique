@@ -74,7 +74,7 @@ class GameEngine:
         # Le village vote pour éliminer un suspect (vote obligatoire).
         state.phase = Phase.JOUR_VOTE
         votes, fallback_used = day.collect_votes(state, provider, rng=self.rng)
-        eliminated = day.resolve_vote(votes, state.alive_ids())
+        eliminated = day.resolve_vote(votes)
 
         if eliminated is not None:
             state.players[eliminated].alive = False

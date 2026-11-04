@@ -99,16 +99,15 @@ def test_a_mismatched_action_type_during_voting_falls_back_instead_of_being_rein
 
 
 def test_resolve_vote_eliminates_the_clear_majority():
-    assert resolve_vote({"a": "c", "b": "c", "c": "a"}, ["a", "b", "c"]) == "c"
+    assert resolve_vote({"a": "c", "b": "c", "c": "a"}) == "c"
 
 
 def test_resolve_vote_two_way_tie_eliminates_nobody():
-    assert resolve_vote({"a": "b", "b": "a"}, ["a", "b"]) is None
+    assert resolve_vote({"a": "b", "b": "a"}) is None
 
 
 def test_resolve_vote_three_way_tie_eliminates_nobody():
-    assert resolve_vote({"a": "d", "b": "e", "c": "f", "d": "a", "e": "b", "f": "c"},
-                         ["a", "b", "c", "d", "e", "f"]) is None
+    assert resolve_vote({"a": "d", "b": "e", "c": "f", "d": "a", "e": "b", "f": "c"}) is None
 
 
 def test_known_wolf_ids_in_day_context_excludes_dead_wolves():

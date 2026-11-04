@@ -68,3 +68,36 @@ def validate_action(
             raise ActionInvalid("witch cannot heal herself")
 
     return Action(action_type, target)
+
+
+def validated_target(
+    state: GameState,
+    player_id: str,
+    response: dict | None,
+    action_type: ActionType,
+) -> str | None:
+    """Extrait d'une réponse d'agent la cible validée pour l'action attendue.
+
+    C'est l'application concrète du principe "l'IA propose, le moteur
+    valide", et le seul chemin par lequel une proposition d'agent devient
+    une action jouable. Donnent toutes None, c'est-à-dire "aucune action
+    valide" :
+    - une réponse absente (agent en échec ou hors délai) ;
+    - une action d'un autre type que celui demandé par la phase en cours
+      (l'agent ne choisit pas ce qu'on lui demande) ;
+    - une cible qui enfreint une règle (joueur mort, loup visant un loup,
+      sorcière se soignant elle-même...) ;
+    - une potion volontairement déclinée, qui revient au même pour
+      l'appelant : aucune potion n'est consommée.
+    """
+    if response is None:
+        return None
+
+    action = response.get("action") or {}
+    if action.get("type") != action_type.value:
+        return None
+
+    try:
+        return validate_action(state, player_id, action_type, action.get("target")).target
+    except ActionInvalid:
+        return None
