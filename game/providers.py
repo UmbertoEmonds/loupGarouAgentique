@@ -235,15 +235,24 @@ def describe_request(state, player, context: dict) -> dict:
 
 
 def build_ai_provider(state, fake: bool, fake_delay_s: float = 0.4):
-    """IA réelle (OpenRouter) ou scriptée, selon la configuration."""
+    """IA réelle (OpenRouter, avec repli Groq) ou scriptée, selon la configuration."""
     if fake:
         return FakeAIProvider(delay_s=fake_delay_s)
-    from agents.client import OpenRouterClient
+    import os
+
+    from agents.client import FallbackClient, GroqClient, OpenRouterClient
     from agents.provider import AIActionProvider
+
+    client = OpenRouterClient()
+    # Repli Groq seulement si une clé est configurée : OpenRouter épuise déjà
+    # sa propre liste de modèles (OPENROUTER_MODELS) avant d'échouer, donc ce
+    # repli ne sert que si c'est le compte OpenRouter entier qui est à quota.
+    if os.environ.get("GROQ_API_KEY"):
+        client = FallbackClient([client, GroqClient()])
 
     ia = {pid: p for pid, p in state.players.items() if not p.is_human}
     provider = AIActionProvider(
-        OpenRouterClient(),
+        client,
         {pid: p.pseudo for pid, p in ia.items()},
         {pid: p.role for pid, p in ia.items()},
         {pid: p.personality for pid, p in ia.items()},

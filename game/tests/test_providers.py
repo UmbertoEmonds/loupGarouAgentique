@@ -4,8 +4,9 @@ import time
 
 from django.test import SimpleTestCase
 
+from agents.client import FallbackClient, GroqClient, OpenRouterClient
 from engine.engine import GameEngine
-from game.providers import HumanProvider, RouterProvider, build_response
+from game.providers import HumanProvider, RouterProvider, build_ai_provider, build_response
 
 VOTE = {"kind": "vote", "allow_message": False, "targets": [{"id": "ia_1", "pseudo": "A"}]}
 
@@ -147,3 +148,39 @@ class RouterProviderTests(SimpleTestCase):
         router.get_action(ai_player_id, {"phase": "jour_debat"})
 
         self.assertEqual(seen, [pseudo, None])
+
+
+class BuildAIProviderTests(SimpleTestCase):
+    """build_ai_provider ne doit activer le repli Groq que si une clé est
+    configurée : sinon FallbackClient tenterait Groq pour rien à chaque appel
+    OpenRouter raté."""
+
+    def _state(self):
+        engine = GameEngine(rng=random.Random(1))
+        engine.start("Umberto")
+        return engine.state
+
+    def test_no_groq_key_uses_a_plain_openrouter_client(self):
+        import os
+        old = os.environ.pop("GROQ_API_KEY", None)
+        try:
+            provider = build_ai_provider(self._state(), fake=False)
+            self.assertIsInstance(provider._client, OpenRouterClient)
+        finally:
+            if old is not None:
+                os.environ["GROQ_API_KEY"] = old
+
+    def test_groq_key_configured_wraps_openrouter_with_a_groq_fallback(self):
+        import os
+        old = os.environ.get("GROQ_API_KEY")
+        os.environ["GROQ_API_KEY"] = "k"
+        try:
+            provider = build_ai_provider(self._state(), fake=False)
+            self.assertIsInstance(provider._client, FallbackClient)
+            self.assertIsInstance(provider._client.clients[0], OpenRouterClient)
+            self.assertIsInstance(provider._client.clients[1], GroqClient)
+        finally:
+            if old is None:
+                os.environ.pop("GROQ_API_KEY", None)
+            else:
+                os.environ["GROQ_API_KEY"] = old

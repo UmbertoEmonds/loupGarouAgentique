@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from agents.client import OpenRouterClient, OpenRouterError
+from agents.client import FallbackClient, GroqClient, GroqError, OpenRouterClient, OpenRouterError
 
 
 class FakeResponse:
@@ -104,3 +104,55 @@ def test_complete_raises_openroutererror_on_network_timeout_with_a_single_model(
     client = OpenRouterClient(models=["m/free"], api_key="k", session=session)
     with pytest.raises(OpenRouterError):
         client.complete("sys", "user")
+
+
+# ---- GroqClient : la logique HTTP/retry est déjà couverte ci-dessus via la
+# base partagée _ChatCompletionClient, on vérifie juste ce qui lui est propre.
+
+def test_groq_client_posts_to_the_groq_endpoint_with_bearer_auth():
+    session = FakeSession([ok_response("salut")])
+    client = GroqClient(models=["m/groq"], api_key="k", session=session)
+    client.complete("sys", "user")
+    assert session.requests[0]["url"] == "https://api.groq.com/openai/v1/chat/completions"
+    assert session.requests[0]["headers"]["Authorization"] == "Bearer k"
+
+def test_groq_client_defaults_to_llama_3_1_8b_instant_with_no_models_configured(monkeypatch):
+    monkeypatch.delenv("GROQ_MODELS", raising=False)
+    client = GroqClient(api_key="k", session=FakeSession([]))
+    assert client.models == ["llama-3.1-8b-instant"]
+
+def test_groq_client_reads_models_from_environment(monkeypatch):
+    monkeypatch.setenv("GROQ_MODELS", "env/groq,env2/groq")
+    client = GroqClient(api_key="k", session=FakeSession([]))
+    assert client.models == ["env/groq", "env2/groq"]
+
+def test_groq_client_raises_groqerror_when_every_model_fails():
+    session = FakeSession([FakeResponse(500, {})])
+    client = GroqClient(models=["m/groq"], api_key="k", session=session)
+    with pytest.raises(GroqError):
+        client.complete("sys", "user")
+
+
+# ---- FallbackClient --------------------------------------------------------
+
+def test_fallback_client_returns_the_first_clients_result_on_success():
+    primary = GroqClient(models=["m/groq"], api_key="k", session=FakeSession([ok_response("ok")]))
+    client = FallbackClient([primary])
+    assert client.complete("sys", "user") == "ok"
+
+def test_fallback_client_tries_the_next_client_after_the_first_is_exhausted():
+    primary = OpenRouterClient(models=["m/free"], api_key="k", session=FakeSession([FakeResponse(500, {})]))
+    secondary = GroqClient(models=["m/groq"], api_key="k", session=FakeSession([ok_response("secours")]))
+    client = FallbackClient([primary, secondary])
+    assert client.complete("sys", "user") == "secours"
+
+def test_fallback_client_raises_the_last_clients_error_when_all_fail():
+    primary = OpenRouterClient(models=["m/free"], api_key="k", session=FakeSession([FakeResponse(500, {})]))
+    secondary = GroqClient(models=["m/groq"], api_key="k", session=FakeSession([FakeResponse(500, {})]))
+    client = FallbackClient([primary, secondary])
+    with pytest.raises(GroqError):
+        client.complete("sys", "user")
+
+def test_fallback_client_requires_at_least_one_client():
+    with pytest.raises(ValueError):
+        FallbackClient([])
