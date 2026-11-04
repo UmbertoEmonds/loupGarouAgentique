@@ -4,7 +4,7 @@ import random
 
 from engine.models import GameState, Phase, Player, Role
 
-PRENOMS = ["Umberto", "Fatima", "Ethan", "Sofia", "Elliot"]
+PRENOMS = ["Ines", "Amaury", "Sarah", "Baptiste", "Benji"]
 PERSONNALITES = ["mauvais_joueur", "stratege", "impatient", "paranoiaque", "manipulateur"]
 ROLE_COUNTS = {Role.LOUP: 2, Role.SORCIERE: 1, Role.VILLAGEOIS: 3}
 
