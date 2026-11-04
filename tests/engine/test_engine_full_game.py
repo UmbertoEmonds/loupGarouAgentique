@@ -67,9 +67,9 @@ class ScriptedAIClient:
 
     @staticmethod
     def _alive_ids(user_content: str) -> list[str]:
-        match = re.search(r"Joueurs vivants \(id:pseudo\) : ([^\n]*)\.", user_content)
+        match = re.search(r"Joueurs vivants : ([^\n]*)\.", user_content)
         roster = match.group(1)
-        return [pair.split(":")[0] for pair in roster.split(", ") if pair]
+        return [pair.split(" (")[0] for pair in roster.split(", ") if pair]
 
     def _player_id_for(self, system_prompt: str) -> str:
         for pid, pseudo in self.player_names.items():

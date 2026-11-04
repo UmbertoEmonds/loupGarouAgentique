@@ -70,7 +70,7 @@ def test_get_action_renders_wolf_target_tonight_for_the_witch():
         "wolf_target_tonight": "ia_1",
     }
     provider.get_action("ia_2", context)
-    assert "Cible des loups cette nuit : ia_1:Ethan" in client.calls[0]["user_content"]
+    assert "Cible des loups cette nuit : ia_1 (Ethan)" in client.calls[0]["user_content"]
 
 def test_get_action_does_not_render_wolf_target_line_when_absent():
     client = FakeClient(['{"message": null, "action": null}'])
@@ -93,7 +93,7 @@ def test_get_action_renders_known_wolf_ids_for_a_wolf():
         "known_wolf_ids": ["ia_2"],
     }
     provider.get_action("ia_1", context)
-    assert "Tes alliés loups : ia_2:Fatima" in client.calls[0]["user_content"]
+    assert "Tes alliés loups : ia_2 (Fatima)" in client.calls[0]["user_content"]
 
 def test_get_action_distinguishes_main_room_and_wolf_room_logs():
     client = FakeClient(['{"message": null, "action": null}'])
@@ -143,3 +143,24 @@ def test_get_action_surfaces_alive_player_ids_in_user_content():
     user_content = client.calls[0]["user_content"]
     assert "ia_1" in user_content
     assert "Fatima" in user_content
+
+def test_get_action_formats_the_roster_as_id_space_parens_pseudo_not_a_colon_pair():
+    """Real free models (observed via a live OpenRouter smoke test) copied
+    an "id:pseudo" colon-joined roster entry verbatim into "target",
+    producing an invalid id like "human:Umberto" instead of "human". The
+    "id (pseudo)" form keeps the bare id as the only thing that looks like
+    a standalone token, and the instruction spells out the forbidden form
+    explicitly with the exact example that was observed failing."""
+    client = FakeClient(['{"message": null, "action": null}'])
+    provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.VILLAGEOIS}, {"ia_1": "stratege"})
+    context = {
+        "phase": "jour_vote", "self_role": "villageois",
+        "alive_players": [{"id": "human", "pseudo": "Umberto"}, {"id": "ia_1", "pseudo": "Fatima"}],
+        "main_room_log": [],
+        "legal_action_types": ["day_vote"],
+    }
+    provider.get_action("ia_1", context)
+    user_content = client.calls[0]["user_content"]
+    assert "Joueurs vivants : human (Umberto), ia_1 (Fatima)." in user_content
+    assert "human:Umberto" not in user_content
+    assert 'jamais "human (Umberto)"' in user_content

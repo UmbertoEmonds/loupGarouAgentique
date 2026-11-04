@@ -45,6 +45,15 @@ class AIActionProvider:
             return NARRATEUR_LABEL
         return pseudo_lookup.get(author_id, self._player_names.get(author_id, author_id))
 
+    def _format_roster(self, entries: list[dict]) -> str:
+        # "id (pseudo)" rather than "id:pseudo": a live-model smoke test
+        # showed a free model copying the colon-joined form verbatim into
+        # "target" (e.g. "human:Umberto" instead of "human"), which the
+        # engine then correctly rejected as an invalid id. Parenthesizing
+        # the pseudo keeps the bare id as the only token that looks like a
+        # standalone identifier.
+        return ", ".join(f'{e["id"]} ({e["pseudo"]})' for e in entries)
+
     def _render_log(self, entries: list[dict], pseudo_lookup: dict[str, str]) -> list[str]:
         lines = []
         for entry in entries:
@@ -75,7 +84,7 @@ class AIActionProvider:
 
         known_wolf_ids = context.get("known_wolf_ids") or []
         if known_wolf_ids:
-            allies = ", ".join(f"{wid}:{resolve(wid)}" for wid in known_wolf_ids)
+            allies = self._format_roster([{"id": wid, "pseudo": resolve(wid)} for wid in known_wolf_ids])
             lines.append(f"Tes alliés loups : {allies}.")
 
         main_room_log = context.get("main_room_log") or []
@@ -89,18 +98,22 @@ class AIActionProvider:
             lines.extend(self._render_log(wolf_room_log, pseudo_lookup))
 
         alive_players = context.get("alive_players", [])
-        roster = ", ".join(f'{player["id"]}:{player["pseudo"]}' for player in alive_players)
-        lines.append(f"Joueurs vivants (id:pseudo) : {roster}.")
+        lines.append(f"Joueurs vivants : {self._format_roster(alive_players)}.")
 
         wolf_target_tonight = context.get("wolf_target_tonight")
         if wolf_target_tonight:
-            lines.append(f"Cible des loups cette nuit : {wolf_target_tonight}:{resolve(wolf_target_tonight)}.")
+            target_entry = [{"id": wolf_target_tonight, "pseudo": resolve(wolf_target_tonight)}]
+            lines.append(f"Cible des loups cette nuit : {self._format_roster(target_entry)}.")
 
         phase = context.get("phase")
         legal_action_types = context.get("legal_action_types", [])
+        example_id = alive_players[0]["id"] if alive_players else "ia_1"
+        example_pseudo = alive_players[0]["pseudo"] if alive_players else "Fatima"
         lines.append(
             f"Phase actuelle : {phase}. Actions autorisées : {legal_action_types}. "
-            "Utilise l'id d'un joueur (pas son pseudo) comme \"target\" si tu soumets une action."
+            f'IMPORTANT : le champ "target" doit être exactement un identifiant seul, '
+            f'par exemple "{example_id}" — jamais "{example_id} ({example_pseudo})", '
+            "jamais le pseudo, jamais de parenthèses ni de ponctuation ajoutée."
         )
 
         return "\n".join(lines)
