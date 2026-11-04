@@ -61,3 +61,30 @@ def test_parse_response_rejects_pass_action_type_absent_from_enum():
 def test_parse_response_rejects_unhashable_action_type():
     with pytest.raises(ResponseParseError):
         parse_response('{"message": null, "action": {"type": ["day_vote"], "target": null}}')
+
+def test_parse_response_rejects_a_message_dominated_by_chinese_characters():
+    raw = '{"message": "安静注视却以为那只是静观之密。好了 每天一起团结", "action": null}'
+    with pytest.raises(ResponseParseError):
+        parse_response(raw)
+
+def test_parse_response_rejects_a_message_mixing_french_and_chinese():
+    raw = (
+        '{"message": "Entendez-vous, ne faites pas semblant que Jean avait '
+        'disparu par hasard ? 限定于新计划小人物当一座大城市的杀手在市民倒下后召开了会议讨论如何联合同一个敌人", '
+        '"action": null}'
+    )
+    with pytest.raises(ResponseParseError):
+        parse_response(raw)
+
+def test_parse_response_accepts_a_normal_french_message():
+    result = parse_response('{"message": "Je pense que c\'est Ethan le loup.", "action": null}')
+    assert result["message"] == "Je pense que c'est Ethan le loup."
+
+def test_parse_response_accepts_a_french_message_with_guillemets_and_a_name():
+    raw = '{"message": "« Bon, on vote ? » a dit Zhāng, un peu vite à mon goût.", "action": null}'
+    result = parse_response(raw)
+    assert "Zhāng" in result["message"]
+
+def test_parse_response_accepts_null_message_unaffected_by_the_language_check():
+    result = parse_response('{"message": null, "action": {"type": "day_vote", "target": "ia_3"}}')
+    assert result["message"] is None
