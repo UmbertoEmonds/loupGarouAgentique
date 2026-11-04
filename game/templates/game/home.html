@@ -1,0 +1,32 @@
+{% extends "game/base.html" %}
+{% block body %}
+<main class="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 py-10 text-center">
+  <div class="mb-6 flex h-28 w-28 items-center justify-center rounded-full border-4 border-blood bg-cream text-6xl shadow-xl">🐺</div>
+  <p class="font-display text-xl text-parchment">les</p>
+  <h1 class="logo-text text-6xl leading-none sm:text-7xl">Loups-Garous</h1>
+  <p class="mt-2 text-parchment/80">Un village, deux loups cachés… et cinq IA qui jouent contre toi.</p>
+
+  <section class="panel mt-8 w-full p-6 text-left">
+    {% if error == "pseudo" %}<p class="mb-3 rounded-lg bg-blood-dark/70 px-3 py-2 text-sm">Choisis un pseudo pour jouer.</p>{% endif %}
+    {% if error == "occupe" or busy %}
+      <p class="mb-1 font-display text-xl text-ember">Partie déjà en cours</p>
+      <p class="text-parchment/80">Une partie est en cours sur ce serveur (une seule partie à la fois). Réessaie dans quelques minutes.</p>
+    {% else %}
+      {% if can_resume %}
+        <p class="mb-4"><a href="{% url 'play' %}" class="btn btn-primary inline-block">Reprendre ma partie</a></p>
+        <hr class="mb-4 border-cream/10">
+      {% endif %}
+      <form method="post" action="{% url 'new_game' %}" class="space-y-4">
+        {% csrf_token %}
+        <label class="block">
+          <span class="mb-1 block font-display text-lg">Ton pseudo</span>
+          <input name="pseudo" maxlength="20" required autofocus autocomplete="nickname" class="field" placeholder="ex : Capucine">
+        </label>
+        <button class="btn btn-primary w-full text-lg" type="submit">Commencer une partie</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <p class="mt-6 max-w-md text-sm text-parchment/60">6 joueurs : 2 loups-garous, 1 sorcière, 3 villageois. Ton rôle est tiré au sort et reste secret.</p>
+</main>
+{% endblock %}

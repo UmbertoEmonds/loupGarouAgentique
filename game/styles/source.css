@@ -1,0 +1,75 @@
+@import "tailwindcss";
+@source "../templates";
+@source "../static/game";
+
+/* Palette tirée de la boîte du jeu de cartes « Les Loups-Garous de Thiercelieux » :
+   fond charbon, rouge sang, lettrage crème-orangé, œil magenta du loup. */
+@theme {
+  --color-ink: #120d0d;
+  --color-charcoal: #2b2322;
+  --color-ash: #3a302e;
+  --color-blood: #b3221b;
+  --color-blood-dark: #7d1511;
+  --color-blood-light: #d13a2d;
+  --color-cream: #f7dfbd;
+  --color-parchment: #e9c99d;
+  --color-ember: #f2a057;
+  --color-eye: #c2185b;
+  --font-display: "Lilita One", "Fredoka", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+  }
+}
+
+@layer components {
+  /* Titre façon logo : crème avec halo orangé */
+  .logo-text {
+    font-family: var(--font-display);
+    color: var(--color-cream);
+    text-shadow: 0 0 6px rgb(242 160 87 / .9), 0 2px 0 var(--color-blood-dark);
+    letter-spacing: .02em;
+  }
+  .panel {
+    background: linear-gradient(180deg, rgb(43 35 34 / .92), rgb(24 18 18 / .92));
+    border: 1px solid rgb(247 223 189 / .14);
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgb(0 0 0 / .45);
+  }
+  .btn {
+    font-family: var(--font-display);
+    letter-spacing: .03em;
+    border-radius: .75rem;
+    padding: .6rem 1.25rem;
+    transition: transform .08s, filter .15s, background-color .15s;
+    cursor: pointer;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: var(--color-blood); color: var(--color-cream); box-shadow: 0 0 0 2px var(--color-blood-dark) inset; }
+  .btn-primary:hover:not(:disabled) { background: var(--color-blood-light); }
+  .btn-ghost { background: transparent; color: var(--color-cream); border: 1px solid rgb(247 223 189 / .35); }
+  .btn-ghost:hover:not(:disabled) { background: rgb(247 223 189 / .1); }
+  .field {
+    background: var(--color-ink); border: 1px solid rgb(247 223 189 / .25);
+    border-radius: .75rem; padding: .6rem .9rem; color: var(--color-cream); width: 100%;
+  }
+  .field:focus { outline: 2px solid var(--color-ember); outline-offset: 1px; }
+}
+
+/* Fond texturé charbon/rouge, plus sombre la nuit */
+.scene {
+  background:
+    radial-gradient(ellipse at 50% 120%, rgb(179 34 27 / .55), transparent 60%),
+    repeating-radial-gradient(circle at 20% 10%, rgb(255 255 255 / .018) 0 2px, transparent 2px 5px),
+    var(--color-charcoal);
+  transition: filter 1s;
+}
+.scene.night { filter: brightness(.62) saturate(1.15); }
+@keyframes pulse-eye { 0%,100% { box-shadow: 0 0 0 0 rgb(194 24 91 / .7); } 50% { box-shadow: 0 0 0 8px rgb(194 24 91 / 0); } }
+.pulse-eye { animation: pulse-eye 1.6s infinite; }

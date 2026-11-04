@@ -1,0 +1,65 @@
+{% extends "game/base.html" %}
+{% load static %}
+{% block title %}Partie — Les Loups-Garous{% endblock %}
+{% block body %}
+<div class="mx-auto flex min-h-screen max-w-6xl flex-col gap-4 px-3 py-4 sm:px-5">
+
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="logo-text text-3xl">Loups-Garous</h1>
+    <div class="flex flex-wrap items-center gap-2 text-sm">
+      <span id="phase" class="rounded-full border border-ember/60 bg-ink/60 px-3 py-1 font-display"></span>
+      <span id="debate-timer" class="hidden rounded-full bg-ink/60 px-3 py-1 tabular-nums"></span>
+      <span id="role" class="rounded-full bg-blood px-3 py-1 font-display"></span>
+      <form method="post" action="{% url 'abandon' %}" onsubmit="return confirm('Abandonner la partie ?')">
+        {% csrf_token %}<button class="btn btn-ghost !py-1 text-sm" type="submit">Abandonner</button>
+      </form>
+    </div>
+  </header>
+
+  <div id="conn" class="hidden rounded-lg bg-blood-dark/80 px-3 py-2 text-center text-sm">Connexion perdue… reconnexion en cours.</div>
+
+  <div class="grid flex-1 gap-4 lg:grid-cols-[16rem_1fr]">
+    <aside class="panel p-3">
+      <h2 class="mb-2 font-display text-lg text-ember">Le village</h2>
+      <ul id="players" class="grid grid-cols-2 gap-2 lg:grid-cols-1"></ul>
+      <div id="witch" class="mt-3 hidden rounded-lg bg-ink/60 p-2 text-sm"></div>
+    </aside>
+
+    <main class="flex min-h-0 flex-col gap-4">
+      <section class="panel flex h-72 flex-col p-3 sm:h-96">
+        <h2 class="mb-2 font-display text-lg text-ember">Place du village</h2>
+        <div id="main-log" class="flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
+      </section>
+
+      <section id="wolf-room" class="panel hidden h-44 flex-col border-eye/40 p-3">
+        <h2 class="mb-2 font-display text-lg text-eye">Antre des loups <span id="wolf-mates" class="text-sm text-parchment/70"></span></h2>
+        <div id="wolf-log" class="flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
+      </section>
+
+      <section id="action" class="panel p-4">
+        <div id="status" class="text-parchment/80"></div>
+        <form id="form" class="hidden space-y-3">
+          <p id="prompt" class="font-display text-lg"></p>
+          <div id="targets" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+          <textarea id="message" rows="2" maxlength="500" class="field hidden" placeholder="Ton message…"></textarea>
+          <div class="flex flex-wrap items-center gap-2" id="buttons"></div>
+          <div class="h-1.5 overflow-hidden rounded-full bg-ink"><div id="bar" class="h-full bg-ember transition-[width] duration-200"></div></div>
+          <p id="timer" class="text-xs text-parchment/60"></p>
+          <p id="error" class="hidden text-sm text-blood-light"></p>
+        </form>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div id="end" class="fixed inset-0 z-10 hidden items-center justify-center bg-black/80 p-4">
+  <div class="panel max-w-md p-8 text-center">
+    <p id="end-emoji" class="text-6xl"></p>
+    <h2 id="end-title" class="logo-text mt-2 text-4xl"></h2>
+    <p id="end-text" class="mt-2 text-parchment/80"></p>
+    <a href="{% url 'home' %}" class="btn btn-primary mt-6 inline-block">Rejouer</a>
+  </div>
+</div>
+
+<script src="{% static 'game/play.js' %}"></script>
+{% endblock %}

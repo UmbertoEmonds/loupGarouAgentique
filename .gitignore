@@ -12,4 +12,7 @@ node_modules/
 *.log
 .worktrees/
 .superpowers/
+CLAUDE.md
+.django_tailwind_cli/
+assets/css/
 .vscode

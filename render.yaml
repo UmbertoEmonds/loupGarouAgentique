@@ -1,0 +1,22 @@
+# Déploiement Render (offre gratuite). UN SEUL process / une seule instance :
+# l'état de la partie vit en mémoire et la couche Channels est InMemory.
+services:
+  - type: web
+    name: loups-garous
+    runtime: python
+    plan: free
+    buildCommand: >-
+      pip install -r requirements.txt
+      && python manage.py tailwind build
+      && python manage.py collectstatic --noinput
+    startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: OPENROUTER_API_KEY
+        sync: false   # à renseigner dans le dashboard Render
+      - key: OPENROUTER_MODELS
+        value: google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,openrouter/free
