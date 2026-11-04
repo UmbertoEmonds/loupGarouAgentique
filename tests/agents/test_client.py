@@ -27,90 +27,80 @@ def ok_response(text):
 
 def test_complete_returns_assistant_text_on_success():
     session = FakeSession([ok_response("salut")])
-    client = OpenRouterClient(model="m/free", api_key="k", session=session)
+    client = OpenRouterClient(models=["m/free"], api_key="k", session=session)
     assert client.complete("sys", "user") == "salut"
     assert session.requests[0]["json"]["model"] == "m/free"
     assert session.requests[0]["timeout"] == 15.0
 
-def test_complete_uses_fallback_model_after_primary_fails():
+def test_complete_tries_the_next_model_after_the_first_fails():
     session = FakeSession([FakeResponse(500, {}), ok_response("secours")])
-    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
+    client = OpenRouterClient(models=["m/free", "m2/free"], api_key="k", session=session)
     assert client.complete("sys", "user") == "secours"
     assert session.requests[1]["json"]["model"] == "m2/free"
 
-def test_complete_raises_when_both_models_fail():
-    session = FakeSession([FakeResponse(500, {}), FakeResponse(500, {})])
-    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
-    with pytest.raises(OpenRouterError):
-        client.complete("sys", "user")
-
-def test_complete_raises_with_no_fallback_configured():
-    session = FakeSession([FakeResponse(500, {})])
-    client = OpenRouterClient(model="m/free", api_key="k", session=session)
-    with pytest.raises(OpenRouterError):
-        client.complete("sys", "user")
-
-def test_constructor_reads_model_from_environment(monkeypatch):
-    monkeypatch.setenv("OPENROUTER_MODEL", "env/free")
-    monkeypatch.setenv("OPENROUTER_API_KEY", "env-key")
-    client = OpenRouterClient(session=FakeSession([]))
-    assert client.model == "env/free"
-
-def test_complete_raises_openroutererror_on_malformed_200_response():
-    session = FakeSession([FakeResponse(200, {"choices": []})])
-    client = OpenRouterClient(model="m/free", api_key="k", session=session)
-    with pytest.raises(OpenRouterError):
-        client.complete("sys", "user")
-
-def test_complete_uses_fallback_model_after_malformed_200_response():
-    session = FakeSession([FakeResponse(200, {"id": "x"}), ok_response("secours")])
-    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
-    assert client.complete("sys", "user") == "secours"
-    assert session.requests[1]["json"]["model"] == "m2/free"
-
-def test_complete_treats_a_network_timeout_as_a_failed_attempt_and_uses_fallback():
-    session = FakeSession([requests.exceptions.Timeout("timed out"), ok_response("secours")])
-    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=session)
-    assert client.complete("sys", "user") == "secours"
-    assert session.requests[1]["json"]["model"] == "m2/free"
-
-def test_complete_raises_openroutererror_on_network_timeout_with_no_fallback():
-    session = FakeSession([requests.exceptions.Timeout("timed out")])
-    client = OpenRouterClient(model="m/free", api_key="k", session=session)
-    with pytest.raises(OpenRouterError):
-        client.complete("sys", "user")
-
-def test_fallback_model_string_is_split_on_commas_and_whitespace_trimmed():
-    client = OpenRouterClient(
-        model="m/free", fallback_model=" m2/free , m3/free ,, ", api_key="k", session=FakeSession([])
-    )
-    assert client.fallback_models == ["m2/free", "m3/free"]
-
-def test_single_fallback_model_produces_a_one_item_list():
-    client = OpenRouterClient(model="m/free", fallback_model="m2/free", api_key="k", session=FakeSession([]))
-    assert client.fallback_models == ["m2/free"]
-
-def test_no_fallback_model_produces_an_empty_list():
-    client = OpenRouterClient(model="m/free", api_key="k", session=FakeSession([]))
-    assert client.fallback_models == []
-
-def test_complete_tries_multiple_fallback_models_in_order_until_one_succeeds():
+def test_complete_tries_every_model_in_order_until_one_succeeds():
     session = FakeSession([FakeResponse(500, {}), FakeResponse(500, {}), ok_response("troisieme")])
-    client = OpenRouterClient(model="m/free", fallback_model="m2/free,m3/free", api_key="k", session=session)
+    client = OpenRouterClient(models=["m/free", "m2/free", "m3/free"], api_key="k", session=session)
     assert client.complete("sys", "user") == "troisieme"
     assert session.requests[0]["json"]["model"] == "m/free"
     assert session.requests[1]["json"]["model"] == "m2/free"
     assert session.requests[2]["json"]["model"] == "m3/free"
 
-def test_complete_raises_when_all_fallback_models_fail():
-    session = FakeSession([FakeResponse(500, {}), FakeResponse(500, {}), FakeResponse(500, {})])
-    client = OpenRouterClient(model="m/free", fallback_model="m2/free,m3/free", api_key="k", session=session)
+def test_complete_raises_when_every_model_fails():
+    session = FakeSession([FakeResponse(500, {}), FakeResponse(500, {})])
+    client = OpenRouterClient(models=["m/free", "m2/free"], api_key="k", session=session)
     with pytest.raises(OpenRouterError):
         client.complete("sys", "user")
 
-def test_constructor_reads_comma_separated_fallback_models_from_environment(monkeypatch):
-    monkeypatch.setenv("OPENROUTER_MODEL", "env/free")
-    monkeypatch.setenv("OPENROUTER_FALLBACK_MODEL", "env2/free,env3/free")
+def test_complete_raises_with_a_single_model_configured():
+    session = FakeSession([FakeResponse(500, {})])
+    client = OpenRouterClient(models=["m/free"], api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")
+
+def test_complete_raises_immediately_with_no_models_configured():
+    session = FakeSession([])
+    client = OpenRouterClient(models=[], api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")
+    assert session.requests == []
+
+def test_constructor_reads_models_from_environment(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_MODELS", "env/free,env2/free")
     monkeypatch.setenv("OPENROUTER_API_KEY", "env-key")
     client = OpenRouterClient(session=FakeSession([]))
-    assert client.fallback_models == ["env2/free", "env3/free"]
+    assert client.models == ["env/free", "env2/free"]
+
+def test_models_env_var_is_split_on_commas_and_whitespace_trimmed(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_MODELS", " m/free , m2/free ,, ")
+    client = OpenRouterClient(api_key="k", session=FakeSession([]))
+    assert client.models == ["m/free", "m2/free"]
+
+def test_no_models_env_var_produces_an_empty_list(monkeypatch):
+    monkeypatch.delenv("OPENROUTER_MODELS", raising=False)
+    client = OpenRouterClient(api_key="k", session=FakeSession([]))
+    assert client.models == []
+
+def test_complete_raises_openroutererror_on_malformed_200_response():
+    session = FakeSession([FakeResponse(200, {"choices": []})])
+    client = OpenRouterClient(models=["m/free"], api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")
+
+def test_complete_tries_the_next_model_after_a_malformed_200_response():
+    session = FakeSession([FakeResponse(200, {"id": "x"}), ok_response("secours")])
+    client = OpenRouterClient(models=["m/free", "m2/free"], api_key="k", session=session)
+    assert client.complete("sys", "user") == "secours"
+    assert session.requests[1]["json"]["model"] == "m2/free"
+
+def test_complete_treats_a_network_timeout_as_a_failed_attempt_and_tries_the_next_model():
+    session = FakeSession([requests.exceptions.Timeout("timed out"), ok_response("secours")])
+    client = OpenRouterClient(models=["m/free", "m2/free"], api_key="k", session=session)
+    assert client.complete("sys", "user") == "secours"
+    assert session.requests[1]["json"]["model"] == "m2/free"
+
+def test_complete_raises_openroutererror_on_network_timeout_with_a_single_model():
+    session = FakeSession([requests.exceptions.Timeout("timed out")])
+    client = OpenRouterClient(models=["m/free"], api_key="k", session=session)
+    with pytest.raises(OpenRouterError):
+        client.complete("sys", "user")

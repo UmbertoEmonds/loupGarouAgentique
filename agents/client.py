@@ -9,12 +9,12 @@ class OpenRouterError(Exception):
     pass
 
 
-def _parse_fallback_models(value: str | None) -> list[str]:
-    """Split a comma-separated fallback-model string into an ordered list.
+def _parse_model_list(value: str | None) -> list[str]:
+    """Split a comma-separated model-id string into an ordered list.
 
     Accepts a single model id, several comma-separated ids, or None/empty
-    (no fallback). Whitespace around each id is stripped; empty entries
-    (e.g. a trailing comma) are dropped.
+    (no models configured). Whitespace around each id is stripped; empty
+    entries (e.g. a trailing comma) are dropped.
     """
     if not value:
         return []
@@ -24,18 +24,15 @@ def _parse_fallback_models(value: str | None) -> list[str]:
 class OpenRouterClient:
     def __init__(
         self,
-        model: str | None = None,
-        fallback_model: str | None = None,
+        models: list[str] | None = None,
         timeout: float = 15.0,
         api_key: str | None = None,
         session=None,
     ):
-        self.model = model if model is not None else os.environ.get("OPENROUTER_MODEL")
-        fallback_value = (
-            fallback_model if fallback_model is not None
-            else os.environ.get("OPENROUTER_FALLBACK_MODEL")
+        self.models = (
+            models if models is not None
+            else _parse_model_list(os.environ.get("OPENROUTER_MODELS"))
         )
-        self.fallback_models = _parse_fallback_models(fallback_value)
         self.api_key = api_key if api_key is not None else os.environ.get("OPENROUTER_API_KEY")
         self.timeout = timeout
         self.session = session if session is not None else requests.Session()
@@ -74,12 +71,8 @@ class OpenRouterClient:
         return content if isinstance(content, str) else None
 
     def complete(self, system_prompt: str, user_content: str) -> str:
-        content = self._attempt(self.model, system_prompt, user_content)
-        if content is not None:
-            return content
-
-        for fallback in self.fallback_models:
-            content = self._attempt(fallback, system_prompt, user_content)
+        for model in self.models:
+            content = self._attempt(model, system_prompt, user_content)
             if content is not None:
                 return content
 
