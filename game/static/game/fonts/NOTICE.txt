@@ -1,0 +1,7 @@
+Polices embarquées (hébergées localement, sous-ensemble latin), obtenues via Google Fonts :
+
+- Lilita One — SIL Open Font License 1.1
+- Nunito (police variable) — SIL Open Font License 1.1
+
+Texte de la licence : https://openfontlicense.org
+L'OFL autorise l'utilisation, la redistribution et l'intégration dans un site web.

@@ -1,0 +1,93 @@
+{% extends "game/base.html" %}
+{% block title %}Confidentialité et usage des données — Les Loups-Garous{% endblock %}
+{% block body %}
+<main class="mx-auto max-w-3xl px-4 py-10">
+  <header class="mb-6 text-center">
+    <a href="{% url 'home' %}" class="logo-text text-4xl">Loups-Garous</a>
+    <h1 class="mt-4 font-display text-3xl text-cream">Confidentialité et usage des données</h1>
+    <p class="mt-1 text-sm text-parchment/70">RGPD et règlement européen sur l'IA (AI Act) · dernière mise à jour : 4 novembre 2026</p>
+  </header>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">En bref</h2>
+    <ul class="list-disc space-y-1 pl-5 text-parchment/90">
+      <li>Pas de compte, pas d'e-mail, pas de base de données : ta partie vit <strong>en mémoire</strong> sur le serveur.</li>
+      <li>Ton <strong>pseudo</strong> et les <strong>messages que tu écris</strong> sont envoyés à des fournisseurs d'IA tiers pour que les IA puissent te répondre.</li>
+      <li>Seuls deux cookies <strong>techniques</strong> sont utilisés : ni publicité, ni mesure d'audience.</li>
+      <li><strong>N'écris aucune donnée personnelle</strong> (nom, adresse, numéro, données sensibles…) dans ton pseudo ou le chat.</li>
+      <li>Tous les autres « joueurs » sont des <strong>IA</strong>, et tu en es toujours informé·e.</li>
+    </ul>
+  </section>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">1. Qui est responsable ?</h2>
+    <p class="text-parchment/90">Cette application est un projet pédagogique de démonstration. Les responsables du traitement sont les membres de l'équipe du projet qui l'exploitent.
+    {% if contact_email %}Pour toute question ou pour exercer tes droits : <a class="text-ember underline" href="mailto:{{ contact_email }}">{{ contact_email }}</a>.{% else %}Pour toute question ou pour exercer tes droits, contacte les responsables du projet par le canal par lequel tu as reçu le lien de l'application.{% endif %}</p>
+  </section>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">2. Quelles données sont traitées ?</h2>
+    <ul class="list-disc space-y-1 pl-5 text-parchment/90">
+      <li><strong>Ton pseudo</strong> (20 caractères maximum), saisi au lancement d'une partie.</li>
+      <li><strong>Tes messages</strong> dans le chat du village (et celui des loups si tu es loup).</li>
+      <li><strong>Tes actions de jeu</strong> : votes, cibles, potions. Ton rôle est tiré au sort par le serveur.</li>
+      <li><strong>Un identifiant de session aléatoire</strong>, stocké dans un cookie, qui permet de te reconnaître comme le joueur de la partie en cours.</li>
+      <li><strong>Données techniques de connexion</strong> (adresse IP, navigateur) : elles transitent par l'hébergeur et ses journaux serveur, comme pour tout site web. L'application ne les enregistre pas.</li>
+    </ul>
+    <p class="mt-2 text-parchment/90">Nous n'utilisons <strong>aucun</strong> outil de publicité, de pistage, d'analyse d'audience ni de profilage.</p>
+  </section>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">3. Pourquoi et sur quelle base légale ?</h2>
+    <p class="text-parchment/90">Uniquement pour faire fonctionner la partie que tu demandes : c'est l'exécution du service (art. 6.1.b du RGPD). Aucune décision produisant des effets juridiques sur toi n'est prise de manière automatisée.</p>
+  </section>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">4. Qui reçoit tes données ?</h2>
+    <ul class="list-disc space-y-2 pl-5 text-parchment/90">
+      <li><strong>Fournisseurs d'IA : OpenRouter</strong>, qui transmet la requête à des modèles de langage tiers, et <strong>Groq</strong> en solution de repli si OpenRouter est indisponible. À chaque tour d'une IA, le serveur leur envoie : les consignes de son personnage, la liste des joueurs vivants (dont <strong>ton pseudo</strong>), l'historique des messages auxquels cette IA a accès (dont <strong>les tiens</strong>) et la phase de jeu. <em>Ne leur sont pas transmis :</em> ton rôle, ton adresse IP, ton cookie.</li>
+      <li><strong>Hébergeur de l'application : Render</strong> (service d'hébergement cloud).</li>
+    </ul>
+    <p class="mt-2 text-parchment/90">Les polices de caractères sont hébergées par l'application elle-même : ton navigateur ne contacte aucun service tiers (comme Google Fonts) pour afficher le site.</p>
+    <p class="mt-2 text-parchment/90">Les prestataires ci-dessus peuvent traiter des données hors de l'Union européenne, notamment aux États-Unis, selon leurs propres politiques de confidentialité. Certains modèles gratuits peuvent aussi conserver ou réutiliser les contenus reçus : c'est une raison de plus de ne rien écrire de personnel.</p>
+  </section>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">5. Combien de temps ?</h2>
+    <ul class="list-disc space-y-1 pl-5 text-parchment/90">
+      <li><strong>Sur le serveur de l'application</strong> : en mémoire uniquement, jusqu'à ce qu'une nouvelle partie soit lancée ou que le serveur redémarre. Aucune sauvegarde, aucun historique archivé.</li>
+      <li><strong>Cookies</strong> : voir ci-dessous.</li>
+      <li><strong>Chez les prestataires</strong> (IA, hébergeur) : selon leurs politiques, que nous ne maîtrisons pas.</li>
+    </ul>
+  </section>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">6. Cookies</h2>
+    <ul class="list-disc space-y-1 pl-5 text-parchment/90">
+      <li><code>sessionid</code> : identifie ta partie (valeur signée, inaccessible au JavaScript). Durée : 2 semaines au maximum.</li>
+      <li><code>csrftoken</code> : protège le formulaire de lancement de partie contre les requêtes frauduleuses. Durée : 1 an au maximum.</li>
+    </ul>
+    <p class="mt-2 text-parchment/90">Ces cookies sont <strong>strictement nécessaires</strong> au fonctionnement du service : ils ne demandent pas de consentement, c'est pourquoi il n'y a pas de bandeau de cookies. Tu peux les supprimer à tout moment depuis ton navigateur (tu perdras alors l'accès à ta partie en cours).</p>
+  </section>
+
+  <section class="panel mb-4 p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">7. Tes droits</h2>
+    <p class="text-parchment/90">Tu peux demander l'accès, la rectification, l'effacement, la limitation, la portabilité de tes données et t'opposer à leur traitement (art. 15 à 21 du RGPD). Comme aucun compte n'existe et que ta partie n'est pas conservée, le plus simple pour effacer tes données de l'application est de lancer une nouvelle partie, de quitter la page ou de supprimer tes cookies. Pour les données détenues par les prestataires, adresse-toi à eux. Si tu estimes que tes droits ne sont pas respectés, tu peux saisir la <a class="text-ember underline" href="https://www.cnil.fr" rel="noopener noreferrer">CNIL</a>.</p>
+  </section>
+
+  <section class="panel mb-4 border-blood p-5">
+    <h2 class="mb-2 font-display text-xl text-ember">8. Intelligence artificielle (AI Act)</h2>
+    <ul class="list-disc space-y-2 pl-5 text-parchment/90">
+      <li><strong>Tu sais toujours que tu joues contre des IA.</strong> Les 5 autres joueurs sont des systèmes d'IA : une bannière l'indique avant et pendant la partie, et chacun est marqué « (ia) » dans la liste des joueurs (obligation de transparence de l'article 50 du règlement (UE) 2024/1689).</li>
+      <li><strong>Leurs messages sont générés automatiquement</strong> par des modèles de langage. Ils peuvent être faux, incohérents ou étranges. Dans le jeu, certaines IA mentent ou bluffent volontairement : cela fait partie des règles du Loup-Garou.</li>
+      <li><strong>Les modèles viennent de tiers</strong> (via OpenRouter ou Groq). Nous ne les entraînons pas et n'utilisons pas tes messages pour entraîner un modèle.</li>
+      <li><strong>Le moteur de jeu garde la main</strong> : une IA ne fait que proposer une action ; le serveur la valide selon les règles avant de l'appliquer. Si une IA ne répond pas ou répond de façon invalide, un comportement de repli automatique prend le relais.</li>
+      <li><strong>Niveau de risque</strong> : il s'agit d'un jeu de divertissement. À notre connaissance, il n'entre dans aucun des cas d'usage à haut risque du règlement (ni emploi, éducation, crédit ou services essentiels), n'utilise ni biométrie ni reconnaissance des émotions, et ne relève d'aucune pratique interdite. Seules les obligations de transparence s'appliquent.</li>
+    </ul>
+  </section>
+
+  <p class="mb-6 text-center text-xs text-parchment/60">Cette page est une information de transparence sur le fonctionnement de l'application ; elle ne constitue pas un avis juridique.</p>
+
+  <p class="text-center"><a href="{% url 'home' %}" class="btn btn-primary inline-block">← Retour à l'accueil</a></p>
+</main>
+{% endblock %}

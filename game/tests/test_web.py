@@ -102,3 +102,35 @@ class WebSocketTests(SimpleTestCase):
 class HomeWarningTests(SimpleTestCase):
     def test_home_warns_that_all_other_players_are_ai(self):
         self.assertContains(Client().get("/"), "tous les autres joueurs sont des IA")
+
+
+class PrivacyPageTests(SimpleTestCase):
+    def test_privacy_page_covers_rgpd_and_ai_act(self):
+        resp = Client().get("/confidentialite/")
+        self.assertEqual(resp.status_code, 200)
+        for text in ("RGPD", "AI Act", "sessionid", "csrftoken", "OpenRouter", "Groq", "CNIL"):
+            self.assertContains(resp, text)
+
+    def test_contact_email_shown_only_when_configured(self):
+        self.assertNotContains(Client().get("/confidentialite/"), "mailto:")
+        with override_settings(PRIVACY_CONTACT_EMAIL="privacy@example.org"):
+            self.assertContains(Client().get("/confidentialite/"), "mailto:privacy@example.org")
+
+    def test_home_links_to_privacy_page(self):
+        resp = Client().get("/")
+        self.assertContains(resp, "/confidentialite/")
+        self.assertContains(resp, "en savoir plus sur la confidentialité et l'usage des données")
+
+
+class SelfHostedFontsTests(SimpleTestCase):
+    def test_pages_do_not_call_google_fonts(self):
+        for url in ("/", "/confidentialite/"):
+            body = Client().get(url).content.decode()
+            self.assertNotIn("googleapis", body)
+            self.assertNotIn("gstatic", body)
+
+    def test_font_files_are_collectable_static_files(self):
+        from django.contrib.staticfiles import finders
+
+        for name in ("lilita-one-latin.woff2", "nunito-latin.woff2"):
+            self.assertIsNotNone(finders.find(f"game/fonts/{name}"), name)
