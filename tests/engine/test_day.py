@@ -50,7 +50,7 @@ def test_debate_stops_early_on_one_full_round_of_passes():
         "ia_2": [{"message": None, "action": None}] * 5,
     })
     run_debate_round_robin(state, provider, is_time_up=lambda: False)
-    assert state.main_room_log == []  # stopped after round 1, never reached time-up
+    assert state.main_room_log == []  # arrêté après le tour 1, jamais atteint le temps écoulé
 
 
 def test_collect_votes_records_a_valid_vote_including_self_vote():
@@ -73,7 +73,7 @@ def test_collect_votes_falls_back_after_retry_exhausted():
     })
     votes, fallback_used = collect_votes(state, provider, rng=random.Random(1))
     assert fallback_used == ["ia_3"]
-    assert votes["ia_3"] == "ia_2"  # ia_2 already has votes, so the "suspected" pool picks it
+    assert votes["ia_3"] == "ia_2"  # ia_2 a déjà des votes, donc le pool des "suspectés" le choisit
 
 
 def test_collect_votes_fallback_is_random_when_nobody_voted_yet():
@@ -85,9 +85,10 @@ def test_collect_votes_fallback_is_random_when_nobody_voted_yet():
 
 
 def test_a_mismatched_action_type_during_voting_falls_back_instead_of_being_reinterpreted():
-    # ia_2's response claims action.type "night_kill_target" even though
-    # the engine is asking for a day_vote; this must not be silently
-    # reinterpreted as a vote just because it carries a legal target.
+    # la réponse d'ia_2 annonce action.type "night_kill_target" alors que
+    # le moteur demande un day_vote ; ça ne doit jamais être réinterprété
+    # silencieusement comme un vote juste parce qu'elle porte une cible
+    # légale.
     state = make_state_with_alive("ia_1", "ia_2")
     provider = ScriptedProvider({
         "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}],
@@ -98,16 +99,15 @@ def test_a_mismatched_action_type_during_voting_falls_back_instead_of_being_rein
 
 
 def test_resolve_vote_eliminates_the_clear_majority():
-    assert resolve_vote({"a": "c", "b": "c", "c": "a"}, ["a", "b", "c"]) == "c"
+    assert resolve_vote({"a": "c", "b": "c", "c": "a"}) == "c"
 
 
 def test_resolve_vote_two_way_tie_eliminates_nobody():
-    assert resolve_vote({"a": "b", "b": "a"}, ["a", "b"]) is None
+    assert resolve_vote({"a": "b", "b": "a"}) is None
 
 
 def test_resolve_vote_three_way_tie_eliminates_nobody():
-    assert resolve_vote({"a": "d", "b": "e", "c": "f", "d": "a", "e": "b", "f": "c"},
-                         ["a", "b", "c", "d", "e", "f"]) is None
+    assert resolve_vote({"a": "d", "b": "e", "c": "f", "d": "a", "e": "b", "f": "c"}) is None
 
 
 def test_known_wolf_ids_in_day_context_excludes_dead_wolves():

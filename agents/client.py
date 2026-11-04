@@ -10,11 +10,12 @@ class OpenRouterError(Exception):
 
 
 def _parse_model_list(value: str | None) -> list[str]:
-    """Split a comma-separated model-id string into an ordered list.
+    """Découpe une chaîne d'identifiants de modèles séparés par des virgules en liste ordonnée.
 
-    Accepts a single model id, several comma-separated ids, or None/empty
-    (no models configured). Whitespace around each id is stripped; empty
-    entries (e.g. a trailing comma) are dropped.
+    Accepte un seul identifiant, plusieurs séparés par des virgules, ou
+    None/vide (aucun modèle configuré). Les espaces autour de chaque
+    identifiant sont retirés ; les entrées vides (ex: virgule finale)
+    sont ignorées.
     """
     if not value:
         return []
@@ -52,11 +53,12 @@ class OpenRouterClient:
         )
 
     def _attempt(self, model: str, system_prompt: str, user_content: str):
-        """Return the assistant text, or None if the attempt failed.
+        """Retourne le texte de l'assistant, ou None si la tentative a échoué.
 
-        A non-200 status, a 200 response with an unexpected body, and a
-        network-level failure (timeout, connection error, ...) raised by the
-        HTTP call itself are all treated identically as a failed attempt.
+        Un statut autre que 200, une réponse 200 au corps inattendu, et une
+        erreur réseau (timeout, connexion, ...) levée par l'appel HTTP
+        lui-même sont tous traités de façon identique comme une tentative
+        échouée.
         """
         try:
             response = self._post(model, system_prompt, user_content)

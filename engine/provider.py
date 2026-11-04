@@ -2,9 +2,9 @@ from typing import Protocol
 
 
 class ActionProvider(Protocol):
-    """Seam between the engine and whoever decides an action (AI or human).
+    """Point de couture entre le moteur et qui décide d'une action (IA ou humain).
 
-    Returns a dict describing the action, or None meaning failed/timed out.
+    Retourne un dict décrivant l'action, ou None en cas d'échec/timeout.
     """
 
     def get_action(self, player_id: str, context: dict) -> dict | None: ...
@@ -16,7 +16,7 @@ def request_with_retry(
     context: dict,
     attempts: int = 2,
 ) -> dict | None:
-    """Call provider.get_action up to `attempts` times; return the first non-None result."""
+    """Appelle provider.get_action jusqu'à `attempts` fois ; retourne le premier résultat non None."""
     for _ in range(attempts):
         result = provider.get_action(player_id, context)
         if result is not None:

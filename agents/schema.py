@@ -1,8 +1,8 @@
-"""Validation of the JSON response contract returned by AI player agents.
+"""Validation du contrat de réponse JSON renvoyé par les agents IA joueurs.
 
-This module is the only place that decides whether an agent response is
-well-formed. Semantic legality of the values (e.g. targeting a dead player)
-is checked later by engine/actions.py.
+Ce module est le seul endroit qui décide si une réponse d'agent est bien
+formée. La légalité sémantique des valeurs (ex: cibler un joueur mort)
+est vérifiée plus tard par engine/actions.py.
 """
 
 import json
@@ -11,7 +11,7 @@ from engine.models import ActionType
 
 
 class ResponseParseError(Exception):
-    """Raised when an agent response does not match the expected contract."""
+    """Levée quand la réponse d'un agent ne correspond pas au contrat attendu."""
 
 
 _TOP_KEYS = {"message", "action"}
@@ -20,10 +20,10 @@ _VALID_ACTION_TYPES = {action_type.value for action_type in ActionType}
 
 
 def parse_response(raw_text: str) -> dict:
-    """Parse and validate the raw text returned by an agent.
+    """Parse et valide le texte brut renvoyé par un agent.
 
-    Returns the parsed dict unchanged when it matches the contract, otherwise
-    raises ResponseParseError.
+    Retourne le dict analysé inchangé quand il correspond au contrat,
+    sinon lève ResponseParseError.
     """
     try:
         data = json.loads(raw_text)

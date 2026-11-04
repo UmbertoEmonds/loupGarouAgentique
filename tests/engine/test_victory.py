@@ -25,8 +25,8 @@ def test_wolves_do_not_win_on_mere_parity():
     state = make_state_with_roles({"ia_1": Role.LOUP, "ia_2": Role.LOUP, "ia_3": Role.VILLAGEOIS, "ia_4": Role.VILLAGEOIS})
     state.get("ia_3").alive = False
     state.get("ia_4").alive = False
-    # 2 loups vs 0 others alive... actually parity test: 2 vs 2 before this kill
-    assert check_victory(state) == Camp.LOUPS  # 2 loups vs 0 others is already strict superiority
+    # 2 loups contre 0 autre vivant : supériorité stricte déjà atteinte
+    assert check_victory(state) == Camp.LOUPS
 
 def test_wolves_do_not_win_at_exact_parity_two_vs_two():
     state = make_state_with_roles({"ia_1": Role.LOUP, "ia_2": Role.LOUP, "ia_3": Role.VILLAGEOIS, "ia_4": Role.VILLAGEOIS})

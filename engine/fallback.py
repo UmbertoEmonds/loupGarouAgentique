@@ -1,9 +1,10 @@
-"""The only two sanctioned randomness fallbacks in the engine.
+"""Les deux seuls recours au hasard autorisés dans le moteur.
 
-Randomness is never a game rule. It is used here strictly as a technical
-safety net: breaking a wolf-negotiation deadlock, and picking a mandatory
-vote target when an agent fails to respond. Night/day resolution must call
-these functions and must not implement their own random logic.
+Le hasard n'est jamais une règle du jeu. Il n'est utilisé ici que comme
+filet de sécurité technique : débloquer une négociation de loups dans
+l'impasse, et choisir une cible de vote obligatoire quand un agent ne
+répond pas. La résolution de nuit/jour doit appeler ces fonctions et ne
+doit jamais implémenter sa propre logique aléatoire.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ def pick_wolf_tiebreak(
     alive_non_wolf_ids: list[str],
     rng: random.Random,
 ) -> str:
-    """Break a wolf deadlock: choose among proposed targets, else any alive non-wolf."""
+    """Débloque une impasse entre loups : choisit parmi les cibles proposées, sinon n'importe quel non-loup vivant."""
     proposed = list(dict.fromkeys(candidate_targets))
     if proposed:
         return rng.choice(proposed)
@@ -28,7 +29,7 @@ def pick_vote_fallback(
     alive_ids: list[str],
     rng: random.Random,
 ) -> str:
-    """Pick a mandatory vote target: prefer an already-suspected alive player, else any alive player."""
+    """Choisit une cible de vote obligatoire : préfère un joueur vivant déjà soupçonné, sinon n'importe quel joueur vivant."""
     alive = set(alive_ids)
     suspected = [target for target in dict.fromkeys(votes_so_far.values()) if target in alive]
     if suspected:
