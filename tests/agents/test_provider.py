@@ -51,10 +51,10 @@ def test_get_action_returns_none_on_unparseable_response():
     assert result is None
 
 def test_get_action_returns_none_on_any_unexpected_exception():
-    """Defense in depth: the seam's contract is "dict or None" — nothing
-    should ever escape get_action uncaught into the engine, even an error
-    type nobody anticipated (e.g. a bug in the client, not just the two
-    sanctioned exception types)."""
+    """Défense en profondeur : le contrat du point de couture est "dict ou
+    None" — rien ne doit jamais s'échapper de get_action sans être
+    intercepté vers le moteur, même un type d'erreur imprévu (ex: un bug
+    du client, pas seulement les deux types d'exception sanctionnés)."""
     client = FakeClient([RuntimeError("something nobody anticipated")])
     provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.VILLAGEOIS}, {"ia_1": "stratege"})
     result = provider.get_action("ia_1", {"phase": "jour_debat", "alive_players": [], "main_room_log": [], "self_role": "villageois"})
@@ -145,12 +145,13 @@ def test_get_action_surfaces_alive_player_ids_in_user_content():
     assert "Fatima" in user_content
 
 def test_get_action_formats_the_roster_as_id_space_parens_pseudo_not_a_colon_pair():
-    """Real free models (observed via a live OpenRouter smoke test) copied
-    an "id:pseudo" colon-joined roster entry verbatim into "target",
-    producing an invalid id like "human:Umberto" instead of "human". The
-    "id (pseudo)" form keeps the bare id as the only thing that looks like
-    a standalone token, and the instruction spells out the forbidden form
-    explicitly with the exact example that was observed failing."""
+    """De vrais modèles gratuits (observé via un test de fumée OpenRouter
+    en conditions réelles) ont recopié une entrée du roster jointe par
+    deux-points "id:pseudo" telle quelle dans "target", produisant un id
+    invalide comme "human:Umberto" au lieu de "human". La forme
+    "id (pseudo)" laisse l'id seul comme seul élément ressemblant à un
+    jeton autonome, et la consigne explicite la forme interdite avec
+    l'exemple exact qui avait échoué."""
     client = FakeClient(['{"message": null, "action": null}'])
     provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.VILLAGEOIS}, {"ia_1": "stratege"})
     context = {

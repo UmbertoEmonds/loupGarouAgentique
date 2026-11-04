@@ -30,14 +30,15 @@ def run_debate_round_robin(
     provider: ActionProvider,
     is_time_up: Callable[[], bool],
 ) -> None:
-    """Run the public debate: one single-attempt turn per alive player, round-robin.
+    """Mène le débat public : un tour à essai unique par joueur vivant, à la ronde.
 
-    Before each player's turn, check is_time_up() and return immediately if
-    so. Each turn is a single (non-retried) call to provider.get_action; a
-    missing response or a response with no message "passes" for that turn.
-    A non-empty message is appended to main_room_log and resets the
-    pass-streak counter; a pass increments it. Once the streak reaches one
-    full round of all-alive-players passing, the debate ends early.
+    Avant chaque tour de joueur, vérifie is_time_up() et retourne
+    immédiatement si c'est le cas. Chaque tour est un seul appel (sans
+    relance) à provider.get_action ; une réponse absente ou sans message
+    "passe" ce tour-là. Un message non vide est ajouté à main_room_log et
+    remet à zéro le compteur de passes consécutives ; une passe
+    l'incrémente. Une fois que le compteur atteint un tour complet où tous
+    les joueurs vivants passent, le débat s'arrête en avance.
     """
     # Le village débat à voix haute dans le salon principal, à tour de
     # rôle, jusqu'à ce que le temps soit écoulé ou que tout le monde passe.
@@ -70,14 +71,15 @@ def collect_votes(
     provider: ActionProvider,
     rng: random.Random | None = None,
 ) -> tuple[dict[str, str], list[str]]:
-    """Collect a mandatory vote from every alive player.
+    """Recueille un vote obligatoire auprès de chaque joueur vivant.
 
-    Each player gets request_with_retry(..., attempts=2) since voting is
-    mandatory. A successful response is validated via validate_action; a
-    None result, or a response that fails validation, is treated as a
-    failure to vote and resolved via pick_vote_fallback, recording the
-    voter id in fallback_used. The fallback choice is also stored as that
-    player's vote, since a vote stays mandatory either way.
+    Chaque joueur a droit à request_with_retry(..., attempts=2) puisque le
+    vote est obligatoire. Une réponse réussie est validée via
+    validate_action ; un résultat None, ou une réponse qui échoue à la
+    validation, est traité comme un échec à voter et résolu via
+    pick_vote_fallback, en enregistrant l'id du votant dans fallback_used.
+    Le choix de repli est aussi enregistré comme le vote de ce joueur,
+    puisque le vote reste obligatoire dans tous les cas.
     """
     # Chaque joueur encore en vie vote publiquement pour éliminer un
     # suspect ; le vote est obligatoire, même pour soi-même.
@@ -115,10 +117,10 @@ def collect_votes(
 
 
 def resolve_vote(votes: dict[str, str], alive_ids: list[str]) -> str | None:
-    """Resolve the day vote: the player with a uniquely-held top vote count is eliminated.
+    """Dépouille le vote du jour : le joueur avec le plus de voix, sans égalité, est éliminé.
 
-    A tie for the top count, of any size (two-way, three-way, or more),
-    eliminates nobody.
+    Une égalité sur le meilleur score, quelle que soit sa taille (deux,
+    trois joueurs ou plus), n'élimine personne.
     """
     # Dépouillement : le village écarte le joueur le plus voté, à moins
     # qu'il n'y ait égalité, auquel cas personne n'est éliminé ce jour-là.

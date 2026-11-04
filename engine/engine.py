@@ -10,7 +10,7 @@ from engine.provider import ActionProvider
 
 
 class GameEngine:
-    """Orchestrates a full game: night cycle -> victory check -> day cycle -> victory check."""
+    """Orchestre une partie complète : cycle de nuit -> vérification de victoire -> cycle de jour -> vérification de victoire."""
 
     def __init__(self, debate_duration_s: int = 180, rng: random.Random | None = None):
         self.debate_duration_s = debate_duration_s

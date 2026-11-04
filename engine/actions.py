@@ -6,7 +6,7 @@ from engine.models import ActionType, GameState, Role
 
 
 class ActionInvalid(Exception):
-    """Raised when an agent's proposed action breaks a game rule."""
+    """Levée quand l'action proposée par un agent enfreint une règle du jeu."""
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ ROLE_FOR_ACTION: dict[ActionType, Role] = {
     ActionType.WITCH_POISON: Role.SORCIERE,
 }
 
-# Only these may be submitted without a target, to decline the action.
+# Seules ces actions peuvent être soumises sans cible, pour la décliner.
 DECLINABLE_ACTIONS = {ActionType.WITCH_HEAL, ActionType.WITCH_POISON}
 
 
@@ -31,11 +31,11 @@ def validate_action(
     action_type: ActionType,
     target: str | None,
 ) -> Action:
-    """Check an agent's proposed action against the game rules.
+    """Vérifie l'action proposée par un agent par rapport aux règles du jeu.
 
-    Returns the validated Action, or raises ActionInvalid. The engine never
-    trusts the proposal itself: every check below applies regardless of
-    what the agent claims.
+    Retourne l'Action validée, ou lève ActionInvalid. Le moteur ne fait
+    jamais confiance à la proposition elle-même : chaque vérification
+    ci-dessous s'applique quoi que l'agent prétende.
     """
     actor = state.players.get(player_id)
     if actor is None:

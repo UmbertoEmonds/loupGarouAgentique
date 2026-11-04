@@ -29,19 +29,21 @@ def resolve_wolf_phase(
     provider: ActionProvider,
     rng: random.Random | None = None,
 ) -> str:
-    """Run the up-to-3-round wolf negotiation and return the night's kill target.
+    """Mène la négociation des loups sur jusqu'à 3 tours et retourne la cible de la nuit.
 
-    Each round, every wolf gets a single (non-retried) call to
-    provider.get_action. A wolf whose response is missing, whose claimed
-    action.type doesn't match night_kill_target, or whose proposed target
-    is invalid simply contributes no valid proposal that round. If both
-    wolves have a valid proposal in the same round and they agree, that
-    target is returned immediately. After MAX_WOLF_ROUNDS rounds without
-    agreement, pick_wolf_tiebreak breaks the tie using only each wolf's
-    LAST valid proposal (per spec §2a: "le moteur tire au sort entre les
-    deux dernières cibles proposées") -- not every distinct proposal made
-    across all rounds -- falling back to the alive non-wolf pool if nobody
-    ever proposed anything.
+    À chaque tour, chaque loup a droit à un seul appel (sans relance) à
+    provider.get_action. Un loup dont la réponse est absente, dont
+    l'action.type annoncé ne correspond pas à night_kill_target, ou dont
+    la cible proposée est invalide ne contribue simplement aucune
+    proposition valide ce tour-ci. Si les deux loups ont une proposition
+    valide le même tour et qu'ils sont d'accord, cette cible est retournée
+    immédiatement. Après MAX_WOLF_ROUNDS tours sans accord,
+    pick_wolf_tiebreak tranche en utilisant uniquement la DERNIÈRE
+    proposition valide de chaque loup (selon le §2a du design : "le moteur
+    tire au sort entre les deux dernières cibles proposées") -- pas toutes
+    les propositions distinctes faites sur l'ensemble des tours -- avec un
+    repli sur le groupe des non-loups vivants si personne n'a jamais rien
+    proposé.
     """
     # Les loups se concertent en privé dans leur salon dédié : chaque tour,
     # chacun propose une victime jusqu'à ce qu'ils se mettent d'accord.
@@ -111,12 +113,13 @@ def resolve_witch_phase(
     provider: ActionProvider,
     wolf_target: str,
 ) -> tuple[bool, str | None]:
-    """Run the witch's single heal sub-call and single poison sub-call.
+    """Mène le sous-appel de soin et le sous-appel de poison de la sorcière.
 
-    Each potion gets at most one (non-retried) call to provider.get_action,
-    and only if that potion hasn't already been used in a previous cycle.
-    A missing response or an invalid proposal (including a self-heal) is
-    treated as a decline for that potion. Returns (healed, poisoned_id).
+    Chaque potion donne droit à au plus un appel (sans relance) à
+    provider.get_action, et seulement si cette potion n'a pas déjà été
+    utilisée lors d'un cycle précédent. Une réponse absente ou une
+    proposition invalide (y compris un auto-soin) est traitée comme un
+    refus d'utiliser cette potion. Retourne (healed, poisoned_id).
     """
     # La sorcière découvre qui les loups ont désigné cette nuit, puis
     # décide, indépendamment, d'utiliser sa potion de soin et/ou de poison.
@@ -127,8 +130,9 @@ def resolve_witch_phase(
     if witch is None:
         return (False, None)
 
-    # The heal-validity check in validate_action compares against
-    # state.last_wolf_target, so it must reflect tonight's wolf pick.
+    # La vérification de validité du soin dans validate_action compare à
+    # state.last_wolf_target, qui doit donc refléter le choix des loups
+    # de ce soir.
     state.last_wolf_target = wolf_target
 
     healed = False
@@ -173,7 +177,7 @@ def apply_night_deaths(
     healed: bool,
     poisoned_id: str | None,
 ) -> list[str]:
-    """Apply this night's deaths to the state and return who died, deduplicated."""
+    """Applique les morts de cette nuit à l'état et retourne qui est mort, sans doublon."""
     # Résolution finale de la nuit : la victime des loups meurt sauf si la
     # sorcière l'a soignée ; sa victime à elle meurt dans tous les cas.
     dead_ids: set[str] = set()

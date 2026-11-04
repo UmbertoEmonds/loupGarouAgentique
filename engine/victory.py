@@ -4,10 +4,11 @@ from engine.models import Camp, GameState, Role
 
 
 def check_victory(state: GameState) -> Camp | None:
-    """Return the winning camp, or None if the game goes on.
+    """Retourne le camp vainqueur, ou None si la partie continue.
 
-    Villagers win when no wolf is alive. Wolves win only on strict numeric
-    superiority over the other living players (never on parity).
+    Les villageois gagnent quand aucun loup n'est vivant. Les loups ne
+    gagnent qu'en supériorité numérique stricte sur les autres joueurs
+    vivants (jamais à égalité).
     """
     alive = [p for p in state.players.values() if p.alive]
     alive_wolves = [p for p in alive if p.role == Role.LOUP]

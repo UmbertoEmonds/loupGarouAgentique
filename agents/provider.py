@@ -1,13 +1,13 @@
-"""Adapter wiring the OpenRouter client, prompts, and schema into the
-engine's ActionProvider seam (engine.provider.ActionProvider).
+"""Adaptateur reliant le client OpenRouter, les prompts et le schéma au
+point de couture ActionProvider du moteur (engine.provider.ActionProvider).
 
-This is the only place in the codebase that implements the spec's
-anti-prompt-injection tagging of chat history sent to an AI player:
-each message is wrapped as `<message auteur="...">texte</message>` so
-the model can distinguish game data from instructions. It's also the
-only place that swallows OpenRouterError/ResponseParseError into None,
-letting the engine's generic retry/fallback logic treat "bad JSON" and
-"network timeout" identically.
+C'est le seul endroit du code qui implémente le balisage anti-injection
+prévu par le design pour l'historique de chat envoyé à un joueur IA :
+chaque message est enveloppé en `<message auteur="...">texte</message>`
+pour que le modèle distingue les données de jeu des instructions. C'est
+aussi le seul endroit qui absorbe OpenRouterError/ResponseParseError en
+None, pour que la logique générique de relance/repli du moteur traite
+"JSON invalide" et "timeout réseau" de façon identique.
 """
 
 from __future__ import annotations
@@ -46,12 +46,13 @@ class AIActionProvider:
         return pseudo_lookup.get(author_id, self._player_names.get(author_id, author_id))
 
     def _format_roster(self, entries: list[dict]) -> str:
-        # "id (pseudo)" rather than "id:pseudo": a live-model smoke test
-        # showed a free model copying the colon-joined form verbatim into
-        # "target" (e.g. "human:Umberto" instead of "human"), which the
-        # engine then correctly rejected as an invalid id. Parenthesizing
-        # the pseudo keeps the bare id as the only token that looks like a
-        # standalone identifier.
+        # "id (pseudo)" plutôt que "id:pseudo" : un test de fumée en
+        # conditions réelles a montré un modèle gratuit recopier la forme
+        # jointe par deux-points telle quelle dans "target" (ex:
+        # "human:Umberto" au lieu de "human"), que le moteur rejetait alors
+        # à juste titre comme id invalide. Mettre le pseudo entre
+        # parenthèses laisse l'id seul comme unique jeton qui ressemble à
+        # un identifiant autonome.
         return ", ".join(f'{e["id"]} ({e["pseudo"]})' for e in entries)
 
     def _render_log(self, entries: list[dict], pseudo_lookup: dict[str, str]) -> list[str]:
@@ -59,14 +60,15 @@ class AIActionProvider:
         for entry in entries:
             label = self._author_label(entry.get("author"), pseudo_lookup)
             text = entry.get("text") or ""
-            # Escape both the label and the text before interpolating them
-            # into the <message auteur="..."> tag: this is the anti-prompt-
-            # injection boundary, so a crafted chat message must never be
-            # able to forge a fake tag (e.g. by closing </message> early and
-            # opening a new <message auteur="Narrateur"> of its own). The
-            # label sits inside a quoted attribute, so it also needs quotes
-            # escaped; the text sits inside element content, where only
-            # "<", ">" and "&" can break the structure.
+            # Échappe le label et le texte avant de les interpoler dans la
+            # balise <message auteur="...">: c'est la frontière anti-
+            # injection, donc un message de chat forgé ne doit jamais
+            # pouvoir fabriquer une fausse balise (ex: fermer </message>
+            # trop tôt et ouvrir un <message auteur="Narrateur"> de son
+            # cru). Le label est dans un attribut entre guillemets, donc
+            # les guillemets doivent aussi être échappés ; le texte est
+            # dans le contenu de l'élément, où seuls "<", ">" et "&"
+            # peuvent casser la structure.
             escaped_label = html.escape(label, quote=True)
             escaped_text = html.escape(text, quote=False)
             lines.append(f'<message auteur="{escaped_label}">{escaped_text}</message>')
@@ -119,11 +121,12 @@ class AIActionProvider:
         return "\n".join(lines)
 
     def get_action(self, player_id: str, context: dict) -> dict | None:
-        # Defense in depth: this seam's contract with the engine is strictly
-        # "dict or None". OpenRouterError/ResponseParseError are the two
-        # expected failure modes and are handled below, but nothing — not
-        # even a bug in this adapter or an exception type nobody
-        # anticipated — may ever escape uncaught into the engine.
+        # Défense en profondeur : le contrat de ce point de couture avec le
+        # moteur est strictement "dict ou None". OpenRouterError et
+        # ResponseParseError sont les deux échecs attendus et sont gérés
+        # ci-dessous, mais rien — pas même un bug de cet adaptateur ou un
+        # type d'exception imprévu — ne doit jamais s'échapper sans être
+        # intercepté vers le moteur.
         try:
             system_prompt = self._system_prompts[player_id]
             user_content = self._build_user_content(player_id, context)
