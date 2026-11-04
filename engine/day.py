@@ -4,25 +4,11 @@ import random
 from collections import Counter
 from typing import Callable
 
-from engine.actions import ActionInvalid, validate_action
+from engine.actions import validated_target
+from engine.context import build_context
 from engine.fallback import pick_vote_fallback
-from engine.models import ActionType, GameState, Player, Role
+from engine.models import ActionType, GameState
 from engine.provider import ActionProvider, request_with_retry
-
-
-def _day_context(state: GameState, player: Player, legal_action_types: list[str]) -> dict:
-    is_wolf = player.role == Role.LOUP
-    return {
-        "phase": state.phase.value,
-        "self_role": player.role.value,
-        "known_wolf_ids": [w.id for w in state.wolves() if w.alive and w.id != player.id] if is_wolf else [],
-        "alive_players": [
-            {"id": p.id, "pseudo": p.pseudo} for p in state.players.values() if p.alive
-        ],
-        "main_room_log": state.main_room_log,
-        "wolf_room_log": state.wolf_room_log if is_wolf else None,
-        "legal_action_types": legal_action_types,
-    }
 
 
 def run_debate_round_robin(
@@ -30,15 +16,18 @@ def run_debate_round_robin(
     provider: ActionProvider,
     is_time_up: Callable[[], bool],
 ) -> None:
-    """Run the public debate: one single-attempt turn per alive player, round-robin.
+    """Mène le débat public : un tour à essai unique par joueur vivant, à la ronde.
 
-    Before each player's turn, check is_time_up() and return immediately if
-    so. Each turn is a single (non-retried) call to provider.get_action; a
-    missing response or a response with no message "passes" for that turn.
-    A non-empty message is appended to main_room_log and resets the
-    pass-streak counter; a pass increments it. Once the streak reaches one
-    full round of all-alive-players passing, the debate ends early.
+    Avant chaque tour de joueur, vérifie is_time_up() et retourne
+    immédiatement si c'est le cas. Chaque tour est un seul appel (sans
+    relance) à provider.get_action ; une réponse absente ou sans message
+    "passe" ce tour-là. Un message non vide est ajouté à main_room_log et
+    remet à zéro le compteur de passes consécutives ; une passe
+    l'incrémente. Une fois que le compteur atteint un tour complet où tous
+    les joueurs vivants passent, le débat s'arrête en avance.
     """
+    # Le village débat à voix haute dans le salon principal, à tour de
+    # rôle, jusqu'à ce que le temps soit écoulé ou que tout le monde passe.
     alive_ids = state.alive_ids()
     if not alive_ids:
         return
@@ -50,7 +39,7 @@ def run_debate_round_robin(
                 return
 
             player = state.get(player_id)
-            context = _day_context(state, player, [])
+            context = build_context(state, player, [])
             response = provider.get_action(player_id, context)
             message = response.get("message") if response is not None else None
 
@@ -68,15 +57,15 @@ def collect_votes(
     provider: ActionProvider,
     rng: random.Random | None = None,
 ) -> tuple[dict[str, str], list[str]]:
-    """Collect a mandatory vote from every alive player.
+    """Recueille un vote obligatoire auprès de chaque joueur vivant.
 
-    Each player gets request_with_retry(..., attempts=2) since voting is
-    mandatory. A successful response is validated via validate_action; a
-    None result, or a response that fails validation, is treated as a
-    failure to vote and resolved via pick_vote_fallback, recording the
-    voter id in fallback_used. The fallback choice is also stored as that
-    player's vote, since a vote stays mandatory either way.
+    Chaque joueur a droit à une relance (attempts=2) puisque le vote est
+    obligatoire. Faute de vote valide, pick_vote_fallback en attribue un
+    d'office et le votant est enregistré dans fallback_used : le vote
+    reste obligatoire dans tous les cas.
     """
+    # Chaque joueur encore en vie vote publiquement pour éliminer un
+    # suspect ; le vote est obligatoire, même pour soi-même.
     if rng is None:
         rng = random.Random()
 
@@ -86,36 +75,29 @@ def collect_votes(
 
     for player_id in alive_ids:
         player = state.get(player_id)
-        context = _day_context(state, player, ["day_vote"])
+        context = build_context(state, player, [ActionType.DAY_VOTE.value])
         response = request_with_retry(provider, player_id, context, attempts=2)
 
-        validated_target: str | None = None
-        if response is not None:
-            action_payload = response.get("action") or {}
-            if action_payload.get("type") == ActionType.DAY_VOTE.value:
-                target = action_payload.get("target")
-                try:
-                    validated = validate_action(state, player_id, ActionType.DAY_VOTE, target)
-                    validated_target = validated.target
-                except ActionInvalid:
-                    validated_target = None
-
-        if validated_target is not None:
-            votes[player_id] = validated_target
-        else:
-            fallback_target = pick_vote_fallback(votes, alive_ids, rng)
+        target = validated_target(state, player_id, response, ActionType.DAY_VOTE)
+        if target is None:
+            # Pas de vote exploitable : le moteur en attribue un d'office,
+            # de préférence sur un joueur déjà soupçonné ce tour-ci.
+            target = pick_vote_fallback(votes, alive_ids, rng)
             fallback_used.append(player_id)
-            votes[player_id] = fallback_target
+
+        votes[player_id] = target
 
     return votes, fallback_used
 
 
-def resolve_vote(votes: dict[str, str], alive_ids: list[str]) -> str | None:
-    """Resolve the day vote: the player with a uniquely-held top vote count is eliminated.
+def resolve_vote(votes: dict[str, str]) -> str | None:
+    """Dépouille le vote du jour : le joueur avec le plus de voix, sans égalité, est éliminé.
 
-    A tie for the top count, of any size (two-way, three-way, or more),
-    eliminates nobody.
+    Une égalité sur le meilleur score, quelle que soit sa taille (deux,
+    trois joueurs ou plus), n'élimine personne.
     """
+    # Dépouillement : le village écarte le joueur le plus voté, à moins
+    # qu'il n'y ait égalité, auquel cas personne n'est éliminé ce jour-là.
     tally = Counter(votes.values())
     if not tally:
         return None

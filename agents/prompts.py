@@ -1,10 +1,12 @@
-"""System prompt assembly for the AI player agents.
+"""Assemblage du prompt système pour les agents IA joueurs.
 
-The copy below is the approved French text from docs/prise-de-decision.docx
-(section "Prompts"), transcribed verbatim. Do not reword it here.
+Le texte ci-dessous est le texte français approuvé issu de
+docs/prise-de-decision.docx (section "Prompts"), transcrit mot pour mot.
+Ne pas le reformuler ici.
 
-PROMPT_GENERAL_TEMPLATE is a str.format() template: the JSON example braces
-are doubled so that only {nom} is substituted at assembly time.
+PROMPT_GENERAL_TEMPLATE est un gabarit str.format() : les accolades de
+l'exemple JSON sont doublées pour que seul {nom} soit substitué au moment
+de l'assemblage.
 """
 
 from engine.models import Role
@@ -89,7 +91,7 @@ Joue pour gagner avec ton camp, en mentant avec aisance si tu es loup.""",
 
 
 def assemble_system_prompt(nom: str, role: Role, personality_slug: str) -> str:
-    """Build the 3-block system prompt: general, then role, then personality."""
+    """Construit le prompt système en 3 blocs : général, puis rôle, puis personnalité."""
     return (
         PROMPT_GENERAL_TEMPLATE.format(nom=nom)
         + "\n\n"

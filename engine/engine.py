@@ -10,7 +10,7 @@ from engine.provider import ActionProvider
 
 
 class GameEngine:
-    """Orchestrates a full game: night cycle -> victory check -> day cycle -> victory check."""
+    """Orchestre une partie complète : cycle de nuit -> vérification de victoire -> cycle de jour -> vérification de victoire."""
 
     def __init__(self, debate_duration_s: int = 180, rng: random.Random | None = None):
         self.debate_duration_s = debate_duration_s
@@ -24,13 +24,19 @@ class GameEngine:
     def run_night_cycle(self, provider: ActionProvider) -> list[str]:
         state = self.state
 
+        # Le village s'endort : la nuit commence, les loups se réveillent
+        # en premier et se concertent en privé sur leur victime.
         state.phase = Phase.NUIT_LOUPS
         wolf_target = night.resolve_wolf_phase(state, provider, rng=self.rng)
         state.last_wolf_target = wolf_target
 
+        # La sorcière se réveille à son tour, découvre la cible des loups
+        # et décide d'utiliser, ou non, sa potion de soin et/ou de poison.
         state.phase = Phase.NUIT_SORCIERE
         healed, poisoned_id = night.resolve_witch_phase(state, provider, wolf_target)
 
+        # Le village se réveille : on calcule qui est réellement mort
+        # cette nuit (soin et poison pris en compte) et on l'annonce.
         dead_ids = night.apply_night_deaths(state, wolf_target, healed, poisoned_id)
 
         if dead_ids:
@@ -61,12 +67,14 @@ class GameEngine:
             deadline = time.monotonic() + self.debate_duration_s
             is_time_up = lambda: time.monotonic() >= deadline
 
+        # Le village débat publiquement de ce qui s'est passé cette nuit.
         state.phase = Phase.JOUR_DEBAT
         day.run_debate_round_robin(state, provider, is_time_up)
 
+        # Le village vote pour éliminer un suspect (vote obligatoire).
         state.phase = Phase.JOUR_VOTE
         votes, fallback_used = day.collect_votes(state, provider, rng=self.rng)
-        eliminated = day.resolve_vote(votes, state.alive_ids())
+        eliminated = day.resolve_vote(votes)
 
         if eliminated is not None:
             state.players[eliminated].alive = False

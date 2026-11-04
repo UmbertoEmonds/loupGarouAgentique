@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import random
 
-from engine.actions import ActionInvalid, validate_action
+from engine.actions import validated_target
+from engine.context import build_context
 from engine.fallback import pick_wolf_tiebreak
 from engine.models import ActionType, GameState, Player, Role
 from engine.provider import ActionProvider
@@ -10,98 +11,75 @@ from engine.provider import ActionProvider
 MAX_WOLF_ROUNDS = 3
 
 
-def _wolf_context(state: GameState, player: Player) -> dict:
-    return {
-        "phase": state.phase.value,
-        "self_role": player.role.value,
-        "known_wolf_ids": [w.id for w in state.wolves() if w.alive and w.id != player.id],
-        "alive_players": [
-            {"id": p.id, "pseudo": p.pseudo} for p in state.players.values() if p.alive
-        ],
-        "main_room_log": state.main_room_log,
-        "wolf_room_log": state.wolf_room_log,
-        "legal_action_types": ["night_kill_target"],
-    }
-
-
 def resolve_wolf_phase(
     state: GameState,
     provider: ActionProvider,
     rng: random.Random | None = None,
 ) -> str:
-    """Run the up-to-3-round wolf negotiation and return the night's kill target.
+    """Mène la négociation des loups sur jusqu'à 3 tours et retourne la cible de la nuit.
 
-    Each round, every wolf gets a single (non-retried) call to
-    provider.get_action. A wolf whose response is missing, whose claimed
-    action.type doesn't match night_kill_target, or whose proposed target
-    is invalid simply contributes no valid proposal that round. If both
-    wolves have a valid proposal in the same round and they agree, that
-    target is returned immediately. After MAX_WOLF_ROUNDS rounds without
-    agreement, pick_wolf_tiebreak breaks the tie using only each wolf's
-    LAST valid proposal (per spec §2a: "le moteur tire au sort entre les
-    deux dernières cibles proposées") -- not every distinct proposal made
-    across all rounds -- falling back to the alive non-wolf pool if nobody
-    ever proposed anything.
+    À chaque tour, chaque loup a droit à un seul appel (sans relance) à
+    provider.get_action. Un loup sans proposition valide ce tour-ci (pas
+    de réponse, mauvais type d'action, ou cible illégale) ne compte tout
+    simplement pas. Dès que tous les loups vivants proposent la même
+    cible le même tour, elle est retournée immédiatement. Après
+    MAX_WOLF_ROUNDS tours sans accord, pick_wolf_tiebreak tranche entre
+    la DERNIÈRE proposition de chaque loup (§2a du design : "le moteur
+    tire au sort entre les deux dernières cibles proposées"), ou parmi
+    les non-loups vivants si personne n'a jamais rien proposé.
     """
+    # Les loups se concertent en privé dans leur salon dédié : chaque tour,
+    # chacun propose une victime jusqu'à ce qu'ils se mettent d'accord.
     if rng is None:
         rng = random.Random()
 
     wolves = [w for w in state.wolves() if w.alive]
-    wolf_ids = {w.id for w in state.wolves()}
-    alive_non_wolf_ids = [p.id for p in state.players.values() if p.alive and p.id not in wolf_ids]
+    alive_non_wolf_ids = [
+        p.id for p in state.players.values() if p.alive and p.role != Role.LOUP
+    ]
 
-    last_valid_proposal: dict[str, str] = {}
+    last_proposal: dict[str, str] = {}
 
     for _round in range(MAX_WOLF_ROUNDS):
         round_proposals: dict[str, str] = {}
 
         for wolf in wolves:
-            context = _wolf_context(state, wolf)
+            context = build_context(state, wolf, [ActionType.NIGHT_KILL_TARGET.value])
             response = provider.get_action(wolf.id, context)
-            if response is None:
-                continue
 
-            message = response.get("message")
+            # Ce que le loup dit est publié dans le salon des loups même si
+            # l'action qui l'accompagne est refusée : c'est de la parole,
+            # pas un coup joué.
+            message = (response or {}).get("message")
             if message:
                 state.wolf_room_log.append({"author": wolf.id, "text": message})
 
-            action_payload = response.get("action") or {}
-            if action_payload.get("type") != ActionType.NIGHT_KILL_TARGET.value:
-                continue
-            target = action_payload.get("target")
+            target = validated_target(state, wolf.id, response, ActionType.NIGHT_KILL_TARGET)
+            if target is not None:
+                round_proposals[wolf.id] = target
+                last_proposal[wolf.id] = target
 
-            try:
-                validated = validate_action(state, wolf.id, ActionType.NIGHT_KILL_TARGET, target)
-            except ActionInvalid:
-                continue
-
-            round_proposals[wolf.id] = validated.target
-            last_valid_proposal[wolf.id] = validated.target
-
-        if len(round_proposals) == len(wolves) and len(set(round_proposals.values())) == 1:
+        everyone_proposed = len(round_proposals) == len(wolves)
+        all_agree = len(set(round_proposals.values())) == 1
+        if everyone_proposed and all_agree:
             return next(iter(round_proposals.values()))
 
-    return pick_wolf_tiebreak(list(last_valid_proposal.values()), alive_non_wolf_ids, rng)
+    return pick_wolf_tiebreak(list(last_proposal.values()), alive_non_wolf_ids, rng)
 
 
-def _witch_context(
+def _ask_witch(
     state: GameState,
+    provider: ActionProvider,
     witch: Player,
     wolf_target: str,
-    legal_action_types: list[str],
-) -> dict:
-    return {
-        "phase": state.phase.value,
-        "self_role": witch.role.value,
-        "known_wolf_ids": [],
-        "alive_players": [
-            {"id": p.id, "pseudo": p.pseudo} for p in state.players.values() if p.alive
-        ],
-        "main_room_log": state.main_room_log,
-        "wolf_room_log": None,
-        "legal_action_types": legal_action_types,
-        "wolf_target_tonight": wolf_target,
-    }
+    action_type: ActionType,
+) -> str | None:
+    """Demande à la sorcière si elle utilise une potion ; retourne la cible validée, ou None."""
+    context = build_context(
+        state, witch, [action_type.value], wolf_target_tonight=wolf_target
+    )
+    response = provider.get_action(witch.id, context)
+    return validated_target(state, witch.id, response, action_type)
 
 
 def resolve_witch_phase(
@@ -109,13 +87,16 @@ def resolve_witch_phase(
     provider: ActionProvider,
     wolf_target: str,
 ) -> tuple[bool, str | None]:
-    """Run the witch's single heal sub-call and single poison sub-call.
+    """Mène le sous-appel de soin et le sous-appel de poison de la sorcière.
 
-    Each potion gets at most one (non-retried) call to provider.get_action,
-    and only if that potion hasn't already been used in a previous cycle.
-    A missing response or an invalid proposal (including a self-heal) is
-    treated as a decline for that potion. Returns (healed, poisoned_id).
+    Chaque potion donne droit à au plus un appel (sans relance), et
+    seulement si elle n'a pas déjà été utilisée lors d'un cycle
+    précédent. Pas de réponse, réponse invalide ou refus explicite
+    reviennent au même : la potion n'est pas consommée.
+    Retourne (healed, poisoned_id).
     """
+    # La sorcière découvre qui les loups ont désigné cette nuit, puis
+    # décide, indépendamment, d'utiliser sa potion de soin et/ou de poison.
     witch = next(
         (p for p in state.players.values() if p.role == Role.SORCIERE and p.alive),
         None,
@@ -123,42 +104,22 @@ def resolve_witch_phase(
     if witch is None:
         return (False, None)
 
-    # The heal-validity check in validate_action compares against
-    # state.last_wolf_target, so it must reflect tonight's wolf pick.
+    # La vérification de validité du soin dans validate_action compare à
+    # state.last_wolf_target, qui doit donc refléter le choix des loups
+    # de ce soir.
     state.last_wolf_target = wolf_target
 
     healed = False
-    poisoned_id: str | None = None
-
     if not witch.witch_heal_used:
-        response = provider.get_action(witch.id, _witch_context(state, witch, wolf_target, ["witch_heal"]))
-        if response is not None:
-            action_payload = response.get("action") or {}
-            validated = None
-            if action_payload.get("type") == ActionType.WITCH_HEAL.value:
-                target = action_payload.get("target")
-                try:
-                    validated = validate_action(state, witch.id, ActionType.WITCH_HEAL, target)
-                except ActionInvalid:
-                    validated = None
-            if validated is not None and validated.target is not None:
-                witch.witch_heal_used = True
-                healed = True
+        if _ask_witch(state, provider, witch, wolf_target, ActionType.WITCH_HEAL) is not None:
+            witch.witch_heal_used = True
+            healed = True
 
+    poisoned_id: str | None = None
     if not witch.witch_poison_used:
-        response = provider.get_action(witch.id, _witch_context(state, witch, wolf_target, ["witch_poison"]))
-        if response is not None:
-            action_payload = response.get("action") or {}
-            validated = None
-            if action_payload.get("type") == ActionType.WITCH_POISON.value:
-                target = action_payload.get("target")
-                try:
-                    validated = validate_action(state, witch.id, ActionType.WITCH_POISON, target)
-                except ActionInvalid:
-                    validated = None
-            if validated is not None and validated.target is not None:
-                witch.witch_poison_used = True
-                poisoned_id = validated.target
+        poisoned_id = _ask_witch(state, provider, witch, wolf_target, ActionType.WITCH_POISON)
+        if poisoned_id is not None:
+            witch.witch_poison_used = True
 
     return (healed, poisoned_id)
 
@@ -169,7 +130,9 @@ def apply_night_deaths(
     healed: bool,
     poisoned_id: str | None,
 ) -> list[str]:
-    """Apply this night's deaths to the state and return who died, deduplicated."""
+    """Applique les morts de cette nuit à l'état et retourne qui est mort, sans doublon."""
+    # Résolution finale de la nuit : la victime des loups meurt sauf si la
+    # sorcière l'a soignée ; sa victime à elle meurt dans tous les cas.
     dead_ids: set[str] = set()
     if not healed:
         dead_ids.add(wolf_target)
