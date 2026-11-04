@@ -49,7 +49,7 @@
         container.append(el("p", "text-center text-sm italic text-ember", e.text));
       } else {
         const mine = e.author_id === me.id;
-        const row = el("p", "rounded-lg px-3 py-1.5 " + (mine ? "bg-blood-dark/60" : "bg-ink/50"));
+        const row = el("p", "rounded-lg px-3 py-1.5 " + (mine ? "bg-blood-dark/60" : "inset"));
         row.append(el("span", "font-display text-ember", e.author + " : "), document.createTextNode(e.text));
         container.append(row);
       }
@@ -63,7 +63,7 @@
     ul.replaceChildren();
     for (const p of s.players) {
       const li = el("li", "flex items-center gap-2 rounded-lg px-2 py-1.5 " +
-        (p.alive ? "bg-ink/60" : "bg-black/50 opacity-60"));
+        (p.alive ? "inset" : "bg-black/50 opacity-60"));
       const badge = el("span", "text-xl", p.alive ? (p.role ? ROLE_EMOJI[p.role] : "🙂") : "💀");
       const info = el("div", "min-w-0 leading-tight");
       info.append(el("div", "truncate font-semibold " + (p.alive ? "" : "line-through"), p.pseudo + (p.is_me ? " (toi)" : " (ia)")));
@@ -147,6 +147,7 @@
     const s = state;
     if (!s || !s.active) { location.href = "/"; return; }
     $("scene").classList.toggle("night", s.is_night);
+    $("scene").classList.toggle("day", !s.is_night);
     $("ai-down").classList.toggle("hidden", !s.ai_down);
     $("phase").textContent = (s.is_night ? "🌙 " : "☀️ ") + s.phase_label + " · tour " + s.cycle;
     $("role").textContent = (ROLE_EMOJI[s.me.role] || "") + " Tu es " + s.me.role_label;
