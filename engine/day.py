@@ -39,6 +39,8 @@ def run_debate_round_robin(
     pass-streak counter; a pass increments it. Once the streak reaches one
     full round of all-alive-players passing, the debate ends early.
     """
+    # Le village débat à voix haute dans le salon principal, à tour de
+    # rôle, jusqu'à ce que le temps soit écoulé ou que tout le monde passe.
     alive_ids = state.alive_ids()
     if not alive_ids:
         return
@@ -77,6 +79,8 @@ def collect_votes(
     voter id in fallback_used. The fallback choice is also stored as that
     player's vote, since a vote stays mandatory either way.
     """
+    # Chaque joueur encore en vie vote publiquement pour éliminer un
+    # suspect ; le vote est obligatoire, même pour soi-même.
     if rng is None:
         rng = random.Random()
 
@@ -116,6 +120,8 @@ def resolve_vote(votes: dict[str, str], alive_ids: list[str]) -> str | None:
     A tie for the top count, of any size (two-way, three-way, or more),
     eliminates nobody.
     """
+    # Dépouillement : le village écarte le joueur le plus voté, à moins
+    # qu'il n'y ait égalité, auquel cas personne n'est éliminé ce jour-là.
     tally = Counter(votes.values())
     if not tally:
         return None

@@ -43,6 +43,8 @@ def resolve_wolf_phase(
     across all rounds -- falling back to the alive non-wolf pool if nobody
     ever proposed anything.
     """
+    # Les loups se concertent en privé dans leur salon dédié : chaque tour,
+    # chacun propose une victime jusqu'à ce qu'ils se mettent d'accord.
     if rng is None:
         rng = random.Random()
 
@@ -116,6 +118,8 @@ def resolve_witch_phase(
     A missing response or an invalid proposal (including a self-heal) is
     treated as a decline for that potion. Returns (healed, poisoned_id).
     """
+    # La sorcière découvre qui les loups ont désigné cette nuit, puis
+    # décide, indépendamment, d'utiliser sa potion de soin et/ou de poison.
     witch = next(
         (p for p in state.players.values() if p.role == Role.SORCIERE and p.alive),
         None,
@@ -170,6 +174,8 @@ def apply_night_deaths(
     poisoned_id: str | None,
 ) -> list[str]:
     """Apply this night's deaths to the state and return who died, deduplicated."""
+    # Résolution finale de la nuit : la victime des loups meurt sauf si la
+    # sorcière l'a soignée ; sa victime à elle meurt dans tous les cas.
     dead_ids: set[str] = set()
     if not healed:
         dead_ids.add(wolf_target)
