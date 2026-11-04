@@ -93,7 +93,8 @@ class WebSocketTests(SimpleTestCase):
             answered += 1
         else:
             self.fail("la partie ne s'est pas terminée")
-        self.assertGreater(answered, 0)
+        # Les rôles sont aléatoires : un humain tué dès la nuit 1 n'est jamais sollicité.
+        self.assertTrue(answered > 0 or not payload["me"]["alive"])
         self.assertIn(payload["winner"], ("loups", "villageois"))
         await comm.disconnect()
 
