@@ -20,9 +20,13 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
         session.loop = asyncio.get_running_loop()
         await self.channel_layer.group_add(GROUP, self.channel_name)
         await self.accept()
+        self.counted = True
+        session.client_connected()
         await self.send_json({"type": "state", "payload": session.snapshot(), "server_time": time.time()})
 
     async def disconnect(self, code):
+        if getattr(self, "counted", False):
+            session.client_disconnected()
         await self.channel_layer.group_discard(GROUP, self.channel_name)
 
     async def game_state(self, event):

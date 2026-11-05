@@ -50,6 +50,9 @@ class GameSession:
         self._last_payload = None
         # Boucle asyncio du serveur, enregistrée par les consumers (voir publish).
         self.loop: asyncio.AbstractEventLoop | None = getattr(self, "loop", None)
+        # Clients WebSocket connectés ; sans client, la partie est abandonnée après un délai.
+        self.clients: int = getattr(self, "clients", 0)
+        self._idle_timer: threading.Timer | None = getattr(self, "_idle_timer", None)
 
     # --- état -------------------------------------------------------------
     @property
@@ -65,9 +68,12 @@ class GameSession:
 
     # --- démarrage / arrêt --------------------------------------------------
     def start(self, owner: str, pseudo: str) -> bool:
-        """Lance une partie. False si une partie est déjà en cours."""
+        """Lance une partie. False si la partie en cours appartient à quelqu'un d'autre.
+
+        Le propriétaire peut toujours en relancer une : la sienne est alors arrêtée.
+        """
         with self._lock:
-            if self.active and self.running and not self._stop.is_set():
+            if self.active and self.running and not self._stop.is_set() and owner != self.owner:
                 return False
             self._stop.set()  # arrête proprement une éventuelle ancienne partie
             old_human = self.human
@@ -98,6 +104,37 @@ class GameSession:
         self._stop.set()
         if self.human:
             self.human.cancel()
+
+    # --- présence du client -------------------------------------------------
+    def client_connected(self) -> None:
+        with self._lock:
+            self.clients += 1
+            self._cancel_idle_timer()
+
+    def client_disconnected(self) -> None:
+        """Quand le dernier client part, abandonne la partie après un délai de grâce
+        (laisse le temps de recharger la page) pour ne pas consommer de jetons dans le vide."""
+        with self._lock:
+            self.clients = max(0, self.clients - 1)
+            if self.clients or not self.running:
+                return
+            self._cancel_idle_timer()
+            gen = self._gen
+            timer = threading.Timer(settings.IDLE_ABANDON_S, self._abandon_if_idle, args=(gen,))
+            timer.daemon = True
+            self._idle_timer = timer
+            timer.start()
+
+    def _cancel_idle_timer(self) -> None:
+        if self._idle_timer:
+            self._idle_timer.cancel()
+            self._idle_timer = None
+
+    def _abandon_if_idle(self, gen) -> None:
+        with self._lock:
+            if gen is not self._gen or self.clients:
+                return
+        self.abandon()
 
     # --- boucle de jeu (thread moteur) --------------------------------------
     @staticmethod

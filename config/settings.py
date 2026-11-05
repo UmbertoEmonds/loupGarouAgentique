@@ -70,6 +70,8 @@ STORAGES = {
 # Délai accordé à l'humain pour agir (spec : 60 à 90 s, avec décompte visible).
 HUMAN_TIMEOUT_S = int(os.environ.get("HUMAN_TIMEOUT_S", "75"))
 DEBATE_DURATION_S = int(os.environ.get("DEBATE_DURATION_S", "180"))
+# Sans client WebSocket connecté depuis ce délai, la partie est abandonnée (économise les jetons IA).
+IDLE_ABANDON_S = float(os.environ.get("IDLE_ABANDON_S", "30"))
 PHASE_PAUSE_S = float(os.environ.get("PHASE_PAUSE_S", "2.5"))
 # FAKE_AI=1 : IA scriptée locale, pour tester l'interface sans clé OpenRouter.
 # Adresse affichée sur la page de confidentialité pour exercer ses droits (facultatif).
