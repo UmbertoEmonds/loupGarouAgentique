@@ -101,9 +101,14 @@ class GameSession:
             self.thinking = name
 
     def abandon(self) -> None:
+        """Arrête la partie tout de suite. Le thread de jeu peut finir son appel IA en cours,
+        mais la partie n'est plus « en cours » (plus de reprise possible, nouvelle partie permise)."""
+        self._cancel_idle_timer()
         self._stop.set()
         if self.human:
             self.human.cancel()
+        self.running = False
+        self.thinking = None
 
     # --- présence du client -------------------------------------------------
     def client_connected(self) -> None:
