@@ -152,7 +152,7 @@ class GameSession:
             engine.state.main_room_log.append({"author": None, "text": text})
 
         try:
-            say("La nuit tombe sur le village…")
+            say("🌙 La nuit tombe, le village s'endort…")
             self._pause(stop)
             if engine.check_and_set_winner() is None:
                 for _ in range(10):
@@ -172,7 +172,7 @@ class GameSession:
                     if engine.check_and_set_winner() is not None:
                         break
                     engine.state.cycle += 1
-                    say("La nuit tombe sur le village…")
+                    say("🌙 La nuit tombe, le village s'endort…")
                     self._pause(stop)
         finally:
             if gen is self._gen:

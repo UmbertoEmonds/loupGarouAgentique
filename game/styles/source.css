@@ -83,15 +83,36 @@
 
 /* Couleurs des panneaux (liste des joueurs, salons de discussion, infos de jeu) :
    valeurs d'origine la nuit et par défaut, plus claires pendant le jour (.day). */
+@property --panel-top { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --panel-bottom { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --inset { syntax: "<color>"; inherits: true; initial-value: transparent; }
 .scene {
   --panel-top: rgb(43 35 34 / .92);
   --panel-bottom: rgb(24 18 18 / .92);
   --inset: rgb(18 13 13 / .55);
 }
 .scene.day {
-  --panel-top: rgb(104 86 79 / .94);
-  --panel-bottom: rgb(80 64 59 / .94);
-  --inset: rgb(38 29 27 / .45);
+  --panel-top: rgb(124 102 93 / .96);
+  --panel-bottom: rgb(98 80 73 / .96);
+  --inset: rgb(38 29 27 / .4);
+}
+
+/* Message du joueur dans les salons */
+.msg-mine { background: rgb(125 21 17 / .6); }
+
+/* Narration (« le village s'endort… ») : bandeau bien visible, centré */
+.narration {
+  font-family: var(--font-display);
+  text-align: center;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  padding: .55rem .9rem;
+  margin: .6rem 0;
+  border-radius: .75rem;
+  color: var(--color-cream);
+  background: rgb(242 160 87 / .14);
+  border: 1px solid rgb(242 160 87 / .55);
+  text-shadow: 0 0 8px rgb(242 160 87 / .45);
 }
 
 /* Fond texturé charbon/rouge, plus sombre la nuit */
@@ -100,8 +121,9 @@
     radial-gradient(ellipse at 50% 120%, rgb(179 34 27 / .55), transparent 60%),
     repeating-radial-gradient(circle at 20% 10%, rgb(255 255 255 / .018) 0 2px, transparent 2px 5px),
     var(--color-charcoal);
-  transition: filter 1s;
+  transition: filter 1.2s ease, --panel-top 1.2s ease, --panel-bottom 1.2s ease, --inset 1.2s ease;
 }
+.scene.day { filter: brightness(1.1); }
 .scene.night { filter: brightness(.62) saturate(1.15); }
 @keyframes pulse-eye { 0%,100% { box-shadow: 0 0 0 0 rgb(194 24 91 / .7); } 50% { box-shadow: 0 0 0 8px rgb(194 24 91 / 0); } }
 .pulse-eye { animation: pulse-eye 1.6s infinite; }
