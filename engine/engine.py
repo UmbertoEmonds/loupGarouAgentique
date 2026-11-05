@@ -39,6 +39,7 @@ class GameEngine:
         # cette nuit (soin et poison pris en compte) et on l'annonce.
         dead_ids = night.apply_night_deaths(state, wolf_target, healed, poisoned_id)
 
+        state.main_room_log.append({"author": None, "text": "☀️ Le jour se lève, le village se réveille…"})
         if dead_ids:
             pseudos = ", ".join(state.players[pid].pseudo for pid in dead_ids)
             text = f"{pseudos} est mort cette nuit." if len(dead_ids) == 1 else f"{pseudos} sont morts cette nuit."

@@ -89,9 +89,50 @@
   --inset: rgb(18 13 13 / .55);
 }
 .scene.day {
-  --panel-top: rgb(104 86 79 / .94);
-  --panel-bottom: rgb(80 64 59 / .94);
-  --inset: rgb(38 29 27 / .45);
+  --panel-top: #ffffff;
+  --panel-bottom: #f3ede6;
+  --inset: rgb(43 35 34 / .07);
+}
+/* Panneaux blancs le jour : on réassigne les couleurs de texte (crème -> sombre)
+   pour que tout reste lisible, sans toucher aux classes des templates. */
+.scene.day .panel {
+  --color-cream: #2b2322;
+  --color-parchment: #4a3a36;
+  --color-ember: #b4531a;
+  --color-eye: #a3154c;
+  color: var(--color-cream);
+  border-color: rgb(43 35 34 / .15);
+  box-shadow: 0 10px 30px rgb(0 0 0 / .3);
+}
+.scene.day .panel .btn-primary { color: #f7dfbd; }
+.scene.day .panel .btn-ghost { border-color: rgb(43 35 34 / .35); }
+.scene.day .panel .btn-ghost:hover:not(:disabled) { background: rgb(43 35 34 / .08); }
+.scene.day .panel .field { background: #fff; border-color: rgb(43 35 34 / .3); }
+.scene.day .panel .bg-ink { background: rgb(43 35 34 / .12); }
+
+/* Message du joueur dans les salons */
+.msg-mine { background: rgb(125 21 17 / .6); }
+.scene.day .msg-mine { background: rgb(179 34 27 / .14); }
+
+/* Narration (« le village s'endort… ») : bandeau bien visible, centré */
+.narration {
+  font-family: var(--font-display);
+  text-align: center;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  padding: .55rem .9rem;
+  margin: .6rem 0;
+  border-radius: .75rem;
+  color: var(--color-cream);
+  background: rgb(242 160 87 / .14);
+  border: 1px solid rgb(242 160 87 / .55);
+  text-shadow: 0 0 8px rgb(242 160 87 / .45);
+}
+.scene.day .narration {
+  color: #7d1511;
+  background: rgb(242 160 87 / .22);
+  border-color: rgb(180 83 26 / .6);
+  text-shadow: none;
 }
 
 /* Fond texturé charbon/rouge, plus sombre la nuit */

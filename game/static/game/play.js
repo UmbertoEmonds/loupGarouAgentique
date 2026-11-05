@@ -46,10 +46,10 @@
     container.replaceChildren();
     for (const e of entries) {
       if (e.author === null) {
-        container.append(el("p", "text-center text-sm italic text-ember", e.text));
+        container.append(el("p", "narration", e.text));
       } else {
         const mine = e.author_id === me.id;
-        const row = el("p", "rounded-lg px-3 py-1.5 " + (mine ? "bg-blood-dark/60" : "inset"));
+        const row = el("p", "rounded-lg px-3 py-1.5 " + (mine ? "msg-mine" : "inset"));
         row.append(el("span", "font-display text-ember", e.author + " : "), document.createTextNode(e.text));
         container.append(row);
       }
