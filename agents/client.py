@@ -54,6 +54,7 @@ class _ChatCompletionClient:
         timeout: float = 15.0,
         api_key: str | None = None,
         session=None,
+        on_usage=None,
     ):
         self.models = (
             models if models is not None
@@ -62,6 +63,8 @@ class _ChatCompletionClient:
         self.api_key = api_key if api_key is not None else os.environ.get(self.API_KEY_ENV_VAR)
         self.timeout = timeout
         self.session = session if session is not None else requests.Session()
+        # Rappel optionnel recevant le dict `usage` (jetons) de chaque appel réussi.
+        self.on_usage = on_usage
 
     def _post(self, model: str, system_prompt: str, user_content: str):
         return self.session.post(
@@ -92,10 +95,23 @@ class _ChatCompletionClient:
         if response.status_code != 200:
             return None
         try:
-            content = response.json()["choices"][0]["message"]["content"]
+            body = response.json()
+            content = body["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError, ValueError):
             return None
-        return content if isinstance(content, str) else None
+        if not isinstance(content, str):
+            return None
+        self._report_usage(body)
+        return content
+
+    def _report_usage(self, body) -> None:
+        if self.on_usage is None or not isinstance(body, dict):
+            return
+        try:
+            self.on_usage(body.get("usage"))
+        except Exception:
+            # Le suivi des coûts ne doit jamais faire échouer un appel au LLM.
+            pass
 
     def complete(self, system_prompt: str, user_content: str) -> str:
         for model in self.models:

@@ -18,6 +18,7 @@ from django.conf import settings
 
 from engine.engine import GameEngine
 from engine.models import Camp, Phase, Role
+from monitoring.cost import RoundCostTracker
 from game.providers import AIHealth, HumanProvider, RouterProvider, build_ai_provider
 
 GROUP = "game"
@@ -85,8 +86,11 @@ class GameSession:
             self.engine = GameEngine(debate_duration_s=settings.DEBATE_DURATION_S, rng=random.Random())
             state = self.engine.start(pseudo)
             self.human = HumanProvider(settings.HUMAN_TIMEOUT_S, on_change=self.publish)
+            engine = self.engine
+            cost_tracker = None if settings.FAKE_AI else RoundCostTracker(lambda: engine.state.cycle)
             ai = build_ai_provider(state, fake=settings.FAKE_AI, fake_delay_s=settings.FAKE_AI_DELAY_S,
-                                  health=self.ai_health)
+                                  health=self.ai_health,
+                                  on_usage=cost_tracker.record if cost_tracker else None)
             provider = RouterProvider(
                 self.engine, ai, self.human, stop,
                 on_thinking=lambda name: self._set_thinking(gen, name),
