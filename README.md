@@ -1,4 +1,4 @@
-# Loup-Garou — solo contre des IA
+# Loup-Garou — solo avec des IA
 
 Une partie de Loup-Garou jouable dans le navigateur : **un joueur humain affronte 5 agents IA**, chacun avec sa personnalité, qui débattent, accusent et votent comme de vrais joueurs.
 
