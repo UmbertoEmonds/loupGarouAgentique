@@ -1,8 +1,12 @@
-"""Réglages Django : un seul process, aucune base de données (état en mémoire)."""
+"""Réglages Django : un seul process, état de partie en mémoire.
+
+La base de données ne sert qu'au suivi des coûts en jetons (app `monitoring`).
+"""
 
 import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +29,7 @@ INSTALLED_APPS = [
     "channels",
     "django_tailwind_cli",
     "game",
+    "monitoring",
 ]
 
 MIDDLEWARE = [
@@ -46,8 +51,16 @@ TEMPLATES = [
     }
 ]
 
-# Pas de BDD : sessions dans un cookie signé, état de partie en mémoire.
-DATABASES = {}
+# Base de données : PostgreSQL via DATABASE_URL (production), sinon SQLite local.
+# L'état de partie reste en mémoire ; la base sert au suivi des coûts (monitoring).
+DATABASES = {
+    "default": dj_database_url.config(
+        default=f"sqlite:///{(BASE_DIR / 'db.sqlite3').as_posix()}",
+        conn_max_age=60,
+        conn_health_checks=True,
+    )
+}
+# Sessions dans un cookie signé : pas besoin de table de sessions.
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_HTTPONLY = True
 

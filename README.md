@@ -18,14 +18,16 @@ Projet réalisé dans le cadre de la formation Simplon.
 | `engine/` | Moteur de règles autoritaire : état, phases jour/nuit, actions, victoire, repli |
 | `agents/` | Agents IA : prompts de personnalité, schéma d'action, client OpenRouter, repli Groq |
 | `game/` | Front Django + WebSockets (Channels), templates, Tailwind, session de partie |
+| `monitoring/` | Suivi du coût en jetons par manche (modèles Django `Game` / `RoundCost`) |
 | `config/` | Réglages Django / ASGI |
-| `tests/`, `game/tests/` | Tests du moteur, des agents et du front |
+| `tests/`, `game/tests/`, `monitoring/tests/` | Tests du moteur, des agents, du front et du suivi des coûts |
 | `docs/` | Spécification du moteur, plans, répartition de l'équipe |
 
 Stack : Django 5.2, Django Channels + Daphne, Tailwind (`django-tailwind-cli`), WhiteNoise.
 Fournisseurs LLM : OpenRouter (modèles gratuits, avec liste de repli) puis Groq si OpenRouter est à quota.
 
 > L'état de la partie vit **en mémoire** et la couche Channels est `InMemory` : une seule instance, **une seule partie à la fois**.
+> La base de données (PostgreSQL en production, SQLite en local) ne sert qu'au suivi des jetons consommés par manche.
 
 ## Installation
 
@@ -34,6 +36,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env        # puis renseigner les clés
 python manage.py tailwind build
+python manage.py migrate     # crée la base (SQLite local par défaut)
 ```
 
 Deux fichiers de dépendances :
@@ -60,6 +63,7 @@ Puis ouvrir <http://127.0.0.1:8000>.
 | `OPENROUTER_MODELS` | Modèles séparés par des virgules, essayés dans l'ordre |
 | `GROQ_API_KEY` / `GROQ_MODELS` | Repli indépendant si OpenRouter échoue (vide = désactivé) |
 | `DJANGO_SECRET_KEY` | Obligatoire en production |
+| `DATABASE_URL` | Base PostgreSQL du suivi des coûts (vide = `db.sqlite3` local) |
 | `DJANGO_DEBUG` | `1` en local uniquement |
 | `IDLE_ABANDON_S` | Délai (30 s par défaut) sans fenêtre de jeu ouverte avant d'abandonner la partie |
 | `FAKE_AI` | `1` pour une IA scriptée locale |
@@ -70,7 +74,7 @@ Puis ouvrir <http://127.0.0.1:8000>.
 
 ```bash
 pytest                      # moteur + agents
-python manage.py test game  # front
+python manage.py test game monitoring  # front + suivi des coûts
 ```
 
 ## Déploiement

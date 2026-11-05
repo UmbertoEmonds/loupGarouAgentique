@@ -9,6 +9,7 @@ services:
       pip install -r requirements.txt
       && python manage.py tailwind build
       && python manage.py collectstatic --noinput
+      && python manage.py migrate --noinput
     startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
     healthCheckPath: /
     envVars:
@@ -16,6 +17,10 @@ services:
         value: 3.12.3
       - key: DJANGO_SECRET_KEY
         generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: loups-garous-db
+          property: connectionString
       - key: OPENROUTER_API_KEY
         sync: false   # à renseigner dans le dashboard Render
       - key: OPENROUTER_MODELS
@@ -24,3 +29,11 @@ services:
         sync: false   # à renseigner dans le dashboard Render ; vide = repli désactivé
       - key: GROQ_MODELS
         value: llama-3.1-8b-instant
+
+# PostgreSQL : suivi des coûts en jetons par manche (app monitoring).
+# Attention : la base gratuite de Render expire 30 jours après sa création.
+databases:
+  - name: loups-garous-db
+    plan: free
+    databaseName: loups_garous
+    user: loups_garous
