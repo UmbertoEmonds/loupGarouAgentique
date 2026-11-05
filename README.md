@@ -64,11 +64,22 @@ Puis ouvrir <http://127.0.0.1:8000>.
 | `GROQ_API_KEY` / `GROQ_MODELS` | Repli indépendant si OpenRouter échoue (vide = désactivé) |
 | `DJANGO_SECRET_KEY` | Obligatoire en production |
 | `DATABASE_URL` | Base PostgreSQL du suivi des coûts (vide = `db.sqlite3` local) |
+| `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD` | Compte de l'admin Django, créé au build par `manage.py ensure_admin` s'il n'existe pas |
 | `DJANGO_DEBUG` | `1` en local uniquement |
 | `IDLE_ABANDON_S` | Délai (30 s par défaut) sans fenêtre de jeu ouverte avant d'abandonner la partie |
 | `FAKE_AI` | `1` pour une IA scriptée locale |
 | `HUMAN_TIMEOUT_S` | Délai laissé à l'humain pour agir |
 | `DEBATE_DURATION_S` | Durée du débat de jour |
+
+## Suivi des coûts (admin)
+
+Les jetons consommés par manche sont consultables dans l'admin Django, en lecture seule : <http://127.0.0.1:8000/admin/> (en production : `https://<hôte>/admin/`).
+
+```bash
+python manage.py createsuperuser   # en local
+```
+
+Sur Render (pas de shell sur l'offre gratuite), renseigner `DJANGO_SUPERUSER_USERNAME` et `DJANGO_SUPERUSER_PASSWORD` dans le dashboard : le compte est créé au build suivant.
 
 ## Tests
 

@@ -10,6 +10,7 @@ services:
       && python manage.py tailwind build
       && python manage.py collectstatic --noinput
       && python manage.py migrate --noinput
+      && python manage.py ensure_admin
     startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
     healthCheckPath: /
     envVars:
@@ -21,6 +22,11 @@ services:
         fromDatabase:
           name: loups-garous-db
           property: connectionString
+      # Compte de l'admin Django (/admin/), créé au build s'il n'existe pas encore.
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false   # à renseigner dans le dashboard Render
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false   # à renseigner dans le dashboard Render
       - key: OPENROUTER_API_KEY
         sync: false   # à renseigner dans le dashboard Render
       - key: OPENROUTER_MODELS
