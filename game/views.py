@@ -23,7 +23,7 @@ def home(request):
     busy = session.active and session.running and not mine
     return render(request, "game/home.html", {
         "busy": busy,
-        "can_resume": mine and not session.finished,
+        "can_resume": mine and session.running and not session.finished,
         "error": request.GET.get("erreur"),
     })
 
@@ -36,7 +36,7 @@ def new_game(request):
     key = _owner(request) or secrets.token_urlsafe(16)
     request.session["player_key"] = key
     if not session.start(key, pseudo):
-        return redirect("/?erreur=occupe")
+        return redirect("home")
     return redirect("play")
 
 

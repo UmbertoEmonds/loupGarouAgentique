@@ -40,7 +40,21 @@ class ViewTests(SimpleTestCase):
         self.assertEqual(owner.get("/jouer/").status_code, 200)
         self.assertContains(other.get("/"), "Partie déjà en cours")
         self.assertEqual(other.get("/jouer/").status_code, 302)
-        self.assertIn("erreur=occupe", other.post("/nouvelle-partie/", {"pseudo": "Bob"})["Location"])
+        self.assertContains(other.post("/nouvelle-partie/", {"pseudo": "Bob"}, follow=True), "Partie déjà en cours")
+
+    def test_owner_can_start_a_new_game_while_theirs_is_running(self):
+        owner = Client()
+        owner.post("/nouvelle-partie/", {"pseudo": "Alice"})
+        resp = owner.post("/nouvelle-partie/", {"pseudo": "Alice2"})
+        self.assertEqual(resp["Location"], "/jouer/")
+        self.assertNotContains(owner.get("/"), "Partie déjà en cours")
+
+    def test_no_resume_link_after_abandon(self):
+        owner = Client()
+        owner.post("/nouvelle-partie/", {"pseudo": "Alice"})
+        self.assertContains(owner.get("/"), "Reprendre ma partie")
+        owner.post("/abandonner/")
+        self.assertNotContains(owner.get("/"), "Reprendre ma partie")
 
 
 @override_settings(**FAST)

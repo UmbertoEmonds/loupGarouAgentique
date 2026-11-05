@@ -51,3 +51,55 @@ class SessionTests(SimpleTestCase):
         self.assertTrue(session.start("other", "Bob"))
         self.assertTrue(session.is_owner("other"))
         self.assertFalse(session.is_owner("owner"))
+
+
+@override_settings(FAKE_AI=True, FAKE_AI_DELAY_S=0.2, PHASE_PAUSE_S=0, HUMAN_TIMEOUT_S=5, DEBATE_DURATION_S=60,
+                   IDLE_ABANDON_S=0.1)
+class IdleAbandonTests(SimpleTestCase):
+    def setUp(self):
+        session.abandon()
+        session.reset()
+        session.clients = 0
+
+    def tearDown(self):
+        session.abandon()
+        session.clients = 0
+
+    def test_game_abandoned_when_last_client_leaves(self):
+        session.start("owner", "Alice")
+        session.client_connected()
+        session.client_disconnected()
+        self.assertTrue(wait_until(lambda: not session.running, timeout=5))
+
+    def test_reconnecting_within_grace_period_keeps_the_game(self):
+        session.start("owner", "Alice")
+        session.client_connected()
+        session.client_disconnected()
+        session.client_connected()
+        time.sleep(0.4)
+        self.assertTrue(session.running)
+
+    def test_game_kept_while_another_client_is_connected(self):
+        session.start("owner", "Alice")
+        session.client_connected()
+        session.client_connected()
+        session.client_disconnected()
+        time.sleep(0.4)
+        self.assertTrue(session.running)
+
+
+@override_settings(FAKE_AI=True, FAKE_AI_DELAY_S=0.2, PHASE_PAUSE_S=0, HUMAN_TIMEOUT_S=5, DEBATE_DURATION_S=60)
+class AbandonTests(SimpleTestCase):
+    def setUp(self):
+        session.abandon()
+        session.reset()
+
+    def tearDown(self):
+        session.abandon()
+
+    def test_abandon_stops_the_game_immediately(self):
+        session.start("owner", "Alice")
+        self.assertTrue(session.running)
+        session.abandon()
+        self.assertFalse(session.running)
+        self.assertIsNone(session.thinking)
