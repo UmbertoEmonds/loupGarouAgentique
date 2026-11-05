@@ -49,6 +49,13 @@ class ViewTests(SimpleTestCase):
         self.assertEqual(resp["Location"], "/jouer/")
         self.assertNotContains(owner.get("/"), "Partie déjà en cours")
 
+    def test_no_resume_link_after_abandon(self):
+        owner = Client()
+        owner.post("/nouvelle-partie/", {"pseudo": "Alice"})
+        self.assertContains(owner.get("/"), "Reprendre ma partie")
+        owner.post("/abandonner/")
+        self.assertNotContains(owner.get("/"), "Reprendre ma partie")
+
 
 @override_settings(**FAST)
 class WebSocketTests(SimpleTestCase):
