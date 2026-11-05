@@ -36,6 +36,10 @@ cp .env.example .env        # puis renseigner les clés
 python manage.py tailwind build
 ```
 
+Deux fichiers de dépendances :
+- `requirements.txt` : ce qu'il faut pour faire tourner l'app (c'est ce que Render installe en production) ;
+- `requirements-dev.txt` : reprend `requirements.txt` (`-r`) et ajoute les outils de développement (`pytest`). À utiliser en local.
+
 ## Lancer en local
 
 ```bash
