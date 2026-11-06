@@ -123,9 +123,24 @@
     radial-gradient(ellipse at 50% 120%, rgb(179 34 27 / .55), transparent 60%),
     repeating-radial-gradient(circle at 20% 10%, rgb(255 255 255 / .018) 0 2px, transparent 2px 5px),
     var(--color-charcoal);
-  transition: filter 1.2s ease, --panel-top 1.2s ease, --panel-bottom 1.2s ease, --inset 1.2s ease;
+  transition: --panel-top 1.2s ease, --panel-bottom 1.2s ease, --inset 1.2s ease;
+  /* Le calque de nuit (::before) reste derrière le contenu de la page. */
+  position: relative;
+  isolation: isolate;
 }
-.scene.day { filter: brightness(1.1); }
-.scene.night { filter: brightness(.62) saturate(1.15); }
+/* La nuit n'assombrit que le fond, par un calque : un `filter` sur toute la page
+   ternissait aussi le texte, et rattachait l'écran de fin (position fixe) au body
+   au lieu de l'écran. */
+.scene::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+.scene.night::before { opacity: .45; }
 @keyframes pulse-eye { 0%,100% { box-shadow: 0 0 0 0 rgb(194 24 91 / .7); } 50% { box-shadow: 0 0 0 8px rgb(194 24 91 / 0); } }
 .pulse-eye { animation: pulse-eye 1.6s infinite; }
