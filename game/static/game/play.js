@@ -80,7 +80,7 @@
     if (s.phase === "terminee") text = "La partie est terminée.";
     else if (!s.me.alive) text = "Tu es mort : tu observes la fin de la partie.";
     else if (s.thinking) text = `${s.thinking} réfléchit…`;
-    else if (s.is_night) text = "Le village dort… la nuit suit son cours.";
+    else if (s.is_night) text = ""; // l'icône du dernier évènement dit déjà que la nuit tombe
     else text = "En attente des autres joueurs…";
     status.textContent = text;
   }
