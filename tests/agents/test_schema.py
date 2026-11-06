@@ -62,17 +62,24 @@ def test_parse_response_rejects_unhashable_action_type():
     with pytest.raises(ResponseParseError):
         parse_response('{"message": null, "action": {"type": ["day_vote"], "target": null}}')
 
-def test_parse_response_rejects_a_message_dominated_by_chinese_characters():
+def test_parse_response_drops_a_message_dominated_by_chinese_characters():
     raw = '{"message": "安静注视却以为那只是静观之密。好了 每天一起团结", "action": null}'
-    with pytest.raises(ResponseParseError):
-        parse_response(raw)
+    assert parse_response(raw) == {"message": None, "action": None}
 
-def test_parse_response_rejects_a_message_mixing_french_and_chinese():
+def test_parse_response_drops_a_message_mixing_french_and_chinese():
     raw = (
         '{"message": "Entendez-vous, ne faites pas semblant que Jean avait '
         'disparu par hasard ? 限定于新计划小人物当一座大城市的杀手在市民倒下后召开了会议讨论如何联合同一个敌人", '
         '"action": null}'
     )
+    assert parse_response(raw) == {"message": None, "action": None}
+
+def test_parse_response_keeps_the_action_when_only_the_message_is_chinese():
+    raw = '{"message": "安静注视却以为那只是静观之密。好了 每天一起团结", "action": {"type": "day_vote", "target": "ia_2"}}'
+    assert parse_response(raw) == {"message": None, "action": {"type": "day_vote", "target": "ia_2"}}
+
+def test_parse_response_still_rejects_an_invalid_action_next_to_a_chinese_message():
+    raw = '{"message": "安静注视却以为那只是静观之密。好了 每天一起团结", "action": {"type": "inconnu", "target": null}}'
     with pytest.raises(ResponseParseError):
         parse_response(raw)
 
