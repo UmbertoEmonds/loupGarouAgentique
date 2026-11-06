@@ -29,15 +29,17 @@
   <div id="conn" class="hidden rounded-lg bg-blood-dark/80 px-3 py-2 text-center text-sm">Connexion perdue… reconnexion en cours.</div>
 
   <div class="grid flex-1 gap-3 lg:min-h-0 lg:grid-cols-[18rem_1fr]">
-    <aside class="panel self-start p-3 lg:max-h-full lg:overflow-y-auto">
+    <div class="flex min-h-0 flex-col gap-3">
+    <aside class="panel shrink-0 p-3 lg:max-h-[60%] lg:overflow-y-auto">
       <h2 class="mb-2 font-display text-lg text-ember">Le village</h2>
       <ul id="players" class="grid grid-cols-2 gap-2 lg:grid-cols-1"></ul>
       <div id="witch" class="inset mt-3 hidden rounded-lg p-2 text-sm"></div>
-      <div id="last-event" class="inset mt-3 hidden items-center gap-3 rounded-lg p-2" aria-live="polite">
-        <span id="last-event-icon" class="text-3xl" aria-hidden="true"></span>
-        <span id="last-event-text" class="text-sm leading-tight text-parchment/90"></span>
-      </div>
     </aside>
+      <section id="last-event" class="panel hidden min-h-24 flex-1 flex-col items-center justify-center gap-2 p-4 text-center" aria-live="polite">
+        <span id="last-event-icon" class="text-6xl" aria-hidden="true"></span>
+        <span id="last-event-text" class="text-base leading-snug text-parchment/90"></span>
+      </section>
+    </div>
 
     <main class="flex min-h-0 flex-col gap-3">
      <div class="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row">
