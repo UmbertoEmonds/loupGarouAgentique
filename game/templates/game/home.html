@@ -1,17 +1,20 @@
 {% extends "game/base.html" %}
 {% block body %}
-<main class="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 py-10 text-center">
-  <div class="mb-6 flex h-28 w-28 items-center justify-center rounded-full border-4 border-blood bg-cream text-6xl shadow-xl">🐺</div>
-  <p class="font-display text-xl text-parchment">les</p>
-  <h1 class="logo-text text-6xl leading-none sm:text-7xl">Loups-Garous</h1>
+<main class="flex min-h-dvh w-full items-center justify-center px-4 py-6 lg:h-dvh lg:overflow-hidden lg:px-10 lg:py-4">
+<div class="grid w-full max-w-6xl items-center gap-6 lg:grid-cols-2 lg:gap-12">
+ <div class="flex flex-col items-center text-center">
+  <div class="mb-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-blood bg-cream text-5xl shadow-xl">🐺</div>
+  <h1 class="logo-text whitespace-nowrap text-5xl leading-none sm:text-6xl lg:text-5xl xl:text-7xl">Loups-Garous</h1>
   <p class="mt-2 text-parchment/80">Un village, deux loups cachés… et cinq IA, loups ou villageois, à tes côtés ou contre toi.</p>
 
-  <div role="note" class="mt-8 w-full rounded-xl border-2 border-blood bg-black px-4 py-3 text-left shadow-lg">
+  <div role="note" class="mt-6 w-full rounded-xl border-2 border-blood bg-black px-4 py-3 text-left shadow-lg">
     <p class="font-display text-lg text-blood-light">⚠️ Attention : tous les autres joueurs sont des IA</p>
     <p class="mt-1 text-sm text-cream/90">Tu es le seul humain de la partie. Les 5 autres « joueurs » sont des intelligences artificielles. Leurs messages sont générés par des modèles de langage et peuvent être imprécis ou étranges.</p>
   </div>
+  <p class="mt-4 max-w-md text-sm text-parchment/60">6 joueurs : 2 loups-garous, 1 sorcière, 3 villageois. Ton rôle est tiré au sort, sauf si tu le choisis ; il reste secret.</p>
+ </div>
 
-  <section class="panel mt-4 w-full p-6 text-left">
+  <section class="panel w-full p-6 text-left">
     {% if error == "pseudo" %}<p class="mb-3 rounded-lg bg-blood-dark/70 px-3 py-2 text-sm">Choisis un pseudo pour jouer.</p>{% endif %}
     {% if busy %}
       <p class="mb-1 font-display text-xl text-ember">Partie déjà en cours</p>
@@ -31,7 +34,7 @@
           <legend class="mb-1 font-display text-lg">Ton rôle</legend>
           <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {% for value, label in roles %}
-            <label class="inset cursor-pointer rounded-lg px-3 py-2 text-center has-[:checked]:ring-2 has-[:checked]:ring-ember">
+            <label class="inset cursor-pointer whitespace-nowrap rounded-lg px-2 py-2 text-center has-[:checked]:ring-2 has-[:checked]:ring-ember">
               <input type="radio" name="role" value="{{ value }}" class="sr-only"{% if forloop.first %} checked{% endif %}>
               {{ label }}
             </label>
@@ -45,7 +48,6 @@
       <a href="{% url 'privacy' %}" class="text-ember underline underline-offset-2 hover:text-cream">Clique ici pour en savoir plus sur la confidentialité et l'usage des données</a>
     </p>
   </section>
-
-  <p class="mt-6 max-w-md text-sm text-parchment/60">6 joueurs : 2 loups-garous, 1 sorcière, 3 villageois. Ton rôle est tiré au sort, sauf si tu le choisis ; il reste secret.</p>
+</div>
 </main>
 {% endblock %}
