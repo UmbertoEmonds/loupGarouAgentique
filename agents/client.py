@@ -137,6 +137,11 @@ class _ChatCompletionClient:
 
 
 class OpenRouterClient(_ChatCompletionClient):
+    """Secours quand tous les modèles Groq sont à quota. Modèles gratuits
+    (« :free ») nommés explicitement, sans le routeur « openrouter/free » qui
+    tombait sur des modèles au hasard, souvent chinois. Sans crédit sur le
+    compte, le palier gratuit est limité à 50 requêtes par jour."""
+
     URL = OPENROUTER_URL
     MODELS_ENV_VAR = "OPENROUTER_MODELS"
     API_KEY_ENV_VAR = "OPENROUTER_API_KEY"
@@ -144,23 +149,22 @@ class OpenRouterClient(_ChatCompletionClient):
 
 
 class GroqClient(_ChatCompletionClient):
-    """Repli quand OpenRouter est hors service (quota du *compte* OpenRouter
-    atteint, pas seulement celui d'un modèle — déjà couvert par la liste de
-    modèles d'OpenRouterClient). Groq expose une API compatible OpenAI avec
-    un palier gratuit sans carte bancaire."""
+    """Fournisseur principal : API compatible OpenAI, palier gratuit sans carte
+    bancaire. Chaque modèle a son propre quota (environ 1000 requêtes par jour
+    et 8000 jetons par minute), d'où une liste de plusieurs modèles."""
 
     URL = GROQ_URL
     MODELS_ENV_VAR = "GROQ_MODELS"
     API_KEY_ENV_VAR = "GROQ_API_KEY"
     ERROR_CLS = GroqError
-    DEFAULT_MODELS = ("llama-3.1-8b-instant",)
+    DEFAULT_MODELS = ("qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b")
 
 
 class FallbackClient:
     """Enchaîne plusieurs clients `complete()` : si le premier échoue (tous
     ses modèles épuisés), tente le suivant. Sert à ajouter un fournisseur de
-    secours indépendant (ex: Groq) quand c'est le compte OpenRouter entier
-    qui est à quota, pas juste un modèle."""
+    secours indépendant (ex: OpenRouter) quand tous les modèles du premier
+    fournisseur (Groq) sont à quota."""
 
     def __init__(self, clients: list):
         if not clients:

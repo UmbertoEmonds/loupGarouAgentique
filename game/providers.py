@@ -251,7 +251,7 @@ class AIHealth:
     """Suit si l'IA est joignable, sans toucher à agents/ ni à engine/.
 
     Le client lève une LLMProviderError quand TOUS les modèles de TOUS les
-    fournisseurs configurés (OpenRouter, puis Groq en repli) ont échoué (quota
+    fournisseurs configurés (Groq, puis OpenRouter en repli) ont échoué (quota
     journalier, clé invalide, réseau...). Le fournisseur d'agents avale cette
     erreur en `None`, que le moteur traite comme un simple
     passage : sans ce suivi, le joueur ne verrait que des IA muettes.
@@ -268,7 +268,7 @@ class AIHealth:
 
 
 class MonitoredClient:
-    """Enveloppe un client LLM (OpenRouter, éventuellement avec repli Groq) et
+    """Enveloppe un client LLM (Groq avec repli OpenRouter, ou OpenRouter seul) et
     alimente AIHealth ; même interface `complete`."""
 
     def __init__(self, client, health: AIHealth):
@@ -289,7 +289,7 @@ class MonitoredClient:
 
 def build_ai_provider(state, fake: bool, fake_delay_s: float = 0.4, health: AIHealth | None = None,
                       on_usage=None, on_call=None):
-    """IA réelle (OpenRouter, avec repli Groq) ou scriptée, selon la configuration.
+    """IA réelle (Groq, avec repli OpenRouter) ou scriptée, selon la configuration.
 
     `on_usage` (optionnel) reçoit l'usage en jetons de chaque appel LLM réussi ;
     `on_call` (optionnel) reçoit en plus le modèle réellement utilisé."""
@@ -300,12 +300,11 @@ def build_ai_provider(state, fake: bool, fake_delay_s: float = 0.4, health: AIHe
     from agents.client import FallbackClient, GroqClient, OpenRouterClient
     from agents.provider import AIActionProvider
 
+    # Groq d'abord (gratuit, modèles choisis), OpenRouter en secours une fois
+    # toute la liste GROQ_MODELS à quota. Sans clé Groq, OpenRouter seul.
     client = OpenRouterClient(on_usage=on_usage, on_call=on_call)
-    # Repli Groq seulement si une clé est configurée : OpenRouter épuise déjà
-    # sa propre liste de modèles (OPENROUTER_MODELS) avant d'échouer, donc ce
-    # repli ne sert que si c'est le compte OpenRouter entier qui est à quota.
     if os.environ.get("GROQ_API_KEY"):
-        client = FallbackClient([client, GroqClient(on_usage=on_usage, on_call=on_call)])
+        client = FallbackClient([GroqClient(on_usage=on_usage, on_call=on_call), client])
 
     ia = {pid: p for pid, p in state.players.items() if not p.is_human}
     provider = AIActionProvider(

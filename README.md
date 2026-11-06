@@ -16,7 +16,7 @@ Projet réalisé dans le cadre de la formation Simplon.
 | Dossier | Rôle |
 |---|---|
 | `engine/` | Moteur de règles autoritaire : état, phases jour/nuit, actions, victoire, repli |
-| `agents/` | Agents IA : prompts de personnalité, schéma d'action, client OpenRouter, repli Groq |
+| `agents/` | Agents IA : prompts de personnalité, schéma d'action, client Groq, repli OpenRouter |
 | `game/` | Front Django + WebSockets (Channels), templates, Tailwind, session de partie |
 | `monitoring/` | Suivi du coût en jetons par manche (modèles Django `Game` / `RoundCost`) |
 | `config/` | Réglages Django / ASGI |
@@ -24,7 +24,7 @@ Projet réalisé dans le cadre de la formation Simplon.
 | `docs/` | Spécification du moteur, plans, répartition de l'équipe |
 
 Stack : Django 5.2, Django Channels + Daphne, Tailwind (`django-tailwind-cli`), WhiteNoise.
-Fournisseurs LLM : OpenRouter (modèles gratuits, avec liste de repli) puis Groq si OpenRouter est à quota.
+Fournisseurs LLM : Groq (palier gratuit, liste de modèles) puis OpenRouter (modèles Gemma gratuits, 50 requêtes par jour) si tous les modèles Groq sont à quota.
 
 > L'état de la partie vit **en mémoire** et la couche Channels est `InMemory` : une seule instance, **une seule partie à la fois**.
 > La base de données (PostgreSQL en production, SQLite en local) ne sert qu'au suivi des jetons consommés par manche.
@@ -49,7 +49,7 @@ Deux fichiers de dépendances :
 # Avec une IA scriptée, sans clé API (pratique pour tester l'interface)
 FAKE_AI=1 DJANGO_DEBUG=1 python manage.py runserver
 
-# Avec de vrais agents : renseigner OPENROUTER_API_KEY (et GROQ_API_KEY en repli) dans .env
+# Avec de vrais agents : renseigner GROQ_API_KEY (et OPENROUTER_API_KEY en repli) dans .env
 DJANGO_DEBUG=1 python manage.py runserver
 ```
 
@@ -59,9 +59,9 @@ Puis ouvrir <http://127.0.0.1:8000>.
 
 | Variable | Description |
 |---|---|
-| `OPENROUTER_API_KEY` | Clé OpenRouter |
+| `OPENROUTER_API_KEY` | Clé OpenRouter (secours, palier gratuit) |
 | `OPENROUTER_MODELS` | Modèles séparés par des virgules, essayés dans l'ordre |
-| `GROQ_API_KEY` / `GROQ_MODELS` | Repli indépendant si OpenRouter échoue (vide = désactivé) |
+| `GROQ_API_KEY` / `GROQ_MODELS` | Fournisseur principal (sans clé : OpenRouter seul) |
 | `DJANGO_SECRET_KEY` | Obligatoire en production |
 | `DATABASE_URL` | Base PostgreSQL du suivi des coûts (vide = `db.sqlite3` local) |
 | `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD` | Compte de l'admin Django, créé au build par `manage.py ensure_admin` s'il n'existe pas |

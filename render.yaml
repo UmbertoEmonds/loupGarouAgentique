@@ -30,11 +30,11 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false   # à renseigner dans le dashboard Render
       - key: OPENROUTER_MODELS
-        value: google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,openrouter/free
+        value: google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free
       - key: GROQ_API_KEY
-        sync: false   # à renseigner dans le dashboard Render ; vide = repli désactivé
+        sync: false   # à renseigner dans le dashboard Render ; fournisseur principal
       - key: GROQ_MODELS
-        value: llama-3.1-8b-instant
+        value: qwen/qwen3.8-27b,openai/gpt-oss-120b,openai/gpt-oss-20b
 
 # PostgreSQL : suivi des coûts en jetons par manche (app monitoring).
 # Attention : la base gratuite de Render expire 30 jours après sa création.

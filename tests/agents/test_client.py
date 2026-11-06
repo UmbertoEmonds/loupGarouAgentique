@@ -116,10 +116,11 @@ def test_groq_client_posts_to_the_groq_endpoint_with_bearer_auth():
     assert session.requests[0]["url"] == "https://api.groq.com/openai/v1/chat/completions"
     assert session.requests[0]["headers"]["Authorization"] == "Bearer k"
 
-def test_groq_client_defaults_to_llama_3_1_8b_instant_with_no_models_configured(monkeypatch):
+def test_groq_client_defaults_to_models_still_served_by_groq(monkeypatch):
+    # llama-3.1-8b-instant a été retiré par Groq (404 constaté le 2026-11-06).
     monkeypatch.delenv("GROQ_MODELS", raising=False)
     client = GroqClient(api_key="k", session=FakeSession([]))
-    assert client.models == ["llama-3.1-8b-instant"]
+    assert client.models == ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
 
 def test_groq_client_reads_models_from_environment(monkeypatch):
     monkeypatch.setenv("GROQ_MODELS", "env/groq,env2/groq")

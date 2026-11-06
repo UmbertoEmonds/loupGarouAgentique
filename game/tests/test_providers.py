@@ -240,9 +240,8 @@ class AIHealthTests(SimpleTestCase):
 
 
 class BuildAIProviderTests(SimpleTestCase):
-    """build_ai_provider ne doit activer le repli Groq que si une clé est
-    configurée : sinon FallbackClient tenterait Groq pour rien à chaque appel
-    OpenRouter raté."""
+    """Avec une clé Groq, Groq passe en premier et OpenRouter sert de secours ;
+    sans clé Groq, OpenRouter seul (inutile de tenter Groq à chaque appel)."""
 
     def _state(self):
         engine = GameEngine(rng=random.Random(1))
@@ -259,15 +258,15 @@ class BuildAIProviderTests(SimpleTestCase):
             if old is not None:
                 os.environ["GROQ_API_KEY"] = old
 
-    def test_groq_key_configured_wraps_openrouter_with_a_groq_fallback(self):
+    def test_groq_key_configured_puts_groq_first_and_openrouter_as_fallback(self):
         import os
         old = os.environ.get("GROQ_API_KEY")
         os.environ["GROQ_API_KEY"] = "k"
         try:
             provider = build_ai_provider(self._state(), fake=False)
             self.assertIsInstance(provider._client._client, FallbackClient)
-            self.assertIsInstance(provider._client._client.clients[0], OpenRouterClient)
-            self.assertIsInstance(provider._client._client.clients[1], GroqClient)
+            self.assertIsInstance(provider._client._client.clients[0], GroqClient)
+            self.assertIsInstance(provider._client._client.clients[1], OpenRouterClient)
         finally:
             if old is None:
                 os.environ.pop("GROQ_API_KEY", None)
@@ -276,7 +275,7 @@ class BuildAIProviderTests(SimpleTestCase):
 
 
 class AIHealthWithFallbackTests(SimpleTestCase):
-    def test_failure_of_the_whole_openrouter_then_groq_chain_counts_as_down(self):
+    def test_failure_of_the_whole_groq_then_openrouter_chain_counts_as_down(self):
         from agents.client import FallbackClient, GroqError, LLMProviderError, OpenRouterError
         from game.providers import AIHealth, MonitoredClient
 
@@ -288,7 +287,7 @@ class AIHealthWithFallbackTests(SimpleTestCase):
                 raise self.error("boom")
 
         health = AIHealth()
-        chain = MonitoredClient(FallbackClient([Failing(OpenRouterError), Failing(GroqError)]), health)
+        chain = MonitoredClient(FallbackClient([Failing(GroqError), Failing(OpenRouterError)]), health)
         for _ in range(2):
             with self.assertRaises(LLMProviderError):
                 chain.complete("s", "u")
