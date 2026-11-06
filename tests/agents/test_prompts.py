@@ -53,11 +53,37 @@ def test_calculated_reveals_remain_possible_for_strategic_personalities():
 
 def test_personality_never_replaces_actual_play():
     assert "ne remplace pas le jeu" in PROMPT_GENERAL_TEMPLATE
-    assert "faire avancer la partie" in PROMPT_GENERAL_TEMPLATE
+    assert "N'invente aucun fait" in PROMPT_GENERAL_TEMPLATE
 
 
-def test_each_day_starts_by_reacting_to_the_night():
-    assert "évènements de la nuit" in PROMPT_GENERAL_TEMPLATE
+def test_general_block_does_not_assume_a_public_debate():
+    # Les règles du débat (argumenter, réagir à la nuit) vivent dans la scène
+    # du jour : dans le bloc général, elles s'appliquaient aussi à l'antre des
+    # loups et poussaient à inventer des soupçons la première nuit.
+    assert "faire avancer la partie" not in PROMPT_GENERAL_TEMPLATE
+    assert "évènements de la nuit" not in PROMPT_GENERAL_TEMPLATE
+    assert "la scène t'est décrite" in PROMPT_GENERAL_TEMPLATE
+
+
+def test_wolves_talk_privately_and_frankly_at_night():
+    loup = ROLE_FRAGMENTS[Role.LOUP]
+    assert "salon privé que personne d'autre ne lit" in loup
+    assert "Inutile de convaincre ou de manipuler" in loup
+    assert "personne n'est suspect" in loup
+    assert "au hasard, c'est normal" in loup
+
+
+def test_agents_know_they_cannot_see_the_other_players():
+    # Sans ça, un loup imaginait une vraie table : « tout le monde la regarde »,
+    # « elle a l'air timide », alors que personne n'avait encore rien écrit.
+    assert "Tu ne vois pas les autres joueurs" in PROMPT_GENERAL_TEMPLATE
+
+
+def test_personality_reflexes_are_tied_to_the_debate():
+    # La première nuit, personne n'a hésité ni parlé : ces réflexes ne valent que pour le débat.
+    assert "pendant le débat, tu accuses sur une simple impression" in PERSONALITY_FRAGMENTS["mauvais_joueur"]
+    assert "Pendant le débat, tu soupçonnes" in PERSONALITY_FRAGMENTS["impatient"]
+    assert "Dans le débat, tu interprètes chaque silence" in PERSONALITY_FRAGMENTS["paranoiaque"]
 
 
 def test_out_of_universe_wording_is_forbidden():

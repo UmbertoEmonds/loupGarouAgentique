@@ -5,9 +5,10 @@ from agents.client import FallbackClient, GroqClient, GroqError, OpenRouterClien
 
 
 class FakeResponse:
-    def __init__(self, status_code, payload):
+    def __init__(self, status_code, payload, headers=None):
         self.status_code = status_code
         self._payload = payload
+        self.headers = headers or {}
     def json(self):
         return self._payload
 
@@ -116,10 +117,11 @@ def test_groq_client_posts_to_the_groq_endpoint_with_bearer_auth():
     assert session.requests[0]["url"] == "https://api.groq.com/openai/v1/chat/completions"
     assert session.requests[0]["headers"]["Authorization"] == "Bearer k"
 
-def test_groq_client_defaults_to_llama_3_1_8b_instant_with_no_models_configured(monkeypatch):
+def test_groq_client_defaults_to_models_still_served_by_groq(monkeypatch):
+    # llama-3.1-8b-instant a été retiré par Groq (404 constaté le 2026-11-06).
     monkeypatch.delenv("GROQ_MODELS", raising=False)
     client = GroqClient(api_key="k", session=FakeSession([]))
-    assert client.models == ["llama-3.1-8b-instant"]
+    assert client.models == ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
 
 def test_groq_client_reads_models_from_environment(monkeypatch):
     monkeypatch.setenv("GROQ_MODELS", "env/groq,env2/groq")
@@ -204,3 +206,51 @@ def test_a_failing_on_call_callback_never_breaks_the_call():
     session = FakeSession([ok_response("ok")])
     client = OpenRouterClient(models=["m"], api_key="k", session=session, on_call=boom)
     assert client.complete("sys", "user") == "ok"
+
+
+# ---- Quota par minute (429 + retry-after) ----------------------------------
+# Groq limite chaque modèle à 8000 jetons par minute. Sans attente, le client
+# abandonnait au premier refus et le débat s'effondrait en deux secondes
+# (chaque échec compte comme « je passe »).
+
+def rate_limited(seconds):
+    return FakeResponse(429, {}, headers={"retry-after": str(seconds)})
+
+def test_rate_limited_models_are_retried_after_the_shortest_wait():
+    session = FakeSession([rate_limited(6), rate_limited(3), ok_response("après attente")])
+    waits = []
+    client = GroqClient(models=["a", "b"], api_key="k", session=session, sleep=waits.append)
+    assert client.complete("sys", "user") == "après attente"
+    assert waits == [3.0]
+    assert [r["json"]["model"] for r in session.requests] == ["a", "b", "a"]
+
+def test_another_model_with_capacity_is_used_before_waiting():
+    session = FakeSession([rate_limited(5), ok_response("b répond")])
+    waits = []
+    client = GroqClient(models=["a", "b"], api_key="k", session=session, sleep=waits.append)
+    assert client.complete("sys", "user") == "b répond"
+    assert waits == []
+
+def test_a_daily_quota_is_not_waited_for():
+    # retry-after de plusieurs minutes : quota du jour épuisé, inutile d'attendre.
+    session = FakeSession([rate_limited(420)])
+    waits = []
+    client = GroqClient(models=["a"], api_key="k", session=session, sleep=waits.append)
+    with pytest.raises(GroqError):
+        client.complete("sys", "user")
+    assert waits == []
+
+def test_a_per_minute_quota_is_waited_for_even_beyond_ten_seconds():
+    session = FakeSession([rate_limited(35), ok_response("ok")])
+    waits = []
+    client = GroqClient(models=["a"], api_key="k", session=session, sleep=waits.append)
+    assert client.complete("sys", "user") == "ok"
+    assert waits == [35.0]
+
+def test_the_client_waits_only_once_per_call():
+    session = FakeSession([rate_limited(2), rate_limited(2)])
+    waits = []
+    client = GroqClient(models=["a"], api_key="k", session=session, sleep=waits.append)
+    with pytest.raises(GroqError):
+        client.complete("sys", "user")
+    assert waits == [2.0]

@@ -43,6 +43,9 @@ def test_play_checks_victory_immediately_after_a_night_kill():
     # seule nuit sans lancer de cycle de jour.
     engine = GameEngine(rng=random.Random(1))
     state = engine.start("Umberto")
+    # Nuit 2 : la première nuit, les loups et le poison de la sorcière IA ne
+    # passent pas par le LLM, or ce test vérifie justement ces appels.
+    state.cycle = 2
     non_wolves = [p for p in state.players.values() if p.role != Role.LOUP]
     lone_survivor = non_wolves[0]
     for p in state.players.values():
@@ -84,19 +87,19 @@ class ScriptedAIClient:
         player_id = self._player_id_for(system_prompt)
         alive_ids = self._alive_ids(user_content)
 
-        if "Phase actuelle : nuit_loups" in user_content:
+        if "dans l'antre des loups" in user_content:
             target = next(pid for pid in alive_ids if self.player_roles[pid] != Role.LOUP)
             return json.dumps({"message": None, "action": {"type": "night_kill_target", "target": target}})
 
-        if "Phase actuelle : nuit_sorciere" in user_content:
+        if "Tu décides sans personne" in user_content:
             if "witch_poison" in user_content:
                 self.saw_wolf_target_tonight_in_poison_call = "Cible des loups cette nuit :" in user_content
             return json.dumps({"message": None, "action": None})  # la sorcière décline les deux potions
 
-        if "Phase actuelle : jour_debat" in user_content:
+        if "débat public" in user_content:
             return json.dumps({"message": None, "action": None})  # passe, débat terminé rapidement
 
-        if "Phase actuelle : jour_vote" in user_content:
+        if "vote public" in user_content:
             target = next(pid for pid in alive_ids if pid != player_id)
             return json.dumps({"message": None, "action": {"type": "day_vote", "target": target}})
 
@@ -114,6 +117,9 @@ def test_real_ai_action_provider_drives_a_full_night_and_day_cycle():
     affiché) puis un cycle de jour complet à travers le vrai moteur."""
     engine = GameEngine(rng=random.Random(7))
     state = engine.start("Umberto")
+    # Nuit 2 : la première nuit, les loups et le poison de la sorcière IA ne
+    # passent pas par le LLM, or ce test vérifie justement ces appels.
+    state.cycle = 2
 
     player_names = {pid: p.pseudo for pid, p in state.players.items()}
     player_roles = {pid: p.role for pid, p in state.players.items()}

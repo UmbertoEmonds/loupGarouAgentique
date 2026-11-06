@@ -24,6 +24,8 @@ def build_context(
 
     context = {
         "phase": state.phase.value,
+        # Numéro de la nuit et du jour en cours (la nuit 1 précède le jour 1).
+        "cycle": state.cycle,
         "self_role": player.role.value,
         # Un loup connaît ses alliés encore vivants ; personne d'autre.
         "known_wolf_ids": (

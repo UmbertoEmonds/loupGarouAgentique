@@ -11,6 +11,51 @@ from engine.provider import ActionProvider
 MAX_WOLF_ROUNDS = 3
 
 
+def _first_night(state: GameState) -> bool:
+    """Avant le premier jour, personne ne sait rien de personne.
+
+    Ce soir-là, le moteur ne consulte pas les IA : un modèle interrogé sans
+    aucune information inventait des faits pour justifier son choix
+    (« Sarah a trop parlé »). Un tirage au sort donne le même résultat, sans
+    invention et sans consommer d'appels. L'humain, lui, est toujours consulté.
+    """
+    return state.cycle == 1
+
+
+def _blind_ally_response(
+    state: GameState,
+    wolf: Player,
+    human_wolves: list[Player],
+    round_proposals: dict[str, str],
+    last_proposal: dict[str, str],
+    alive_non_wolf_ids: list[str],
+    rng: random.Random,
+) -> dict:
+    """Réponse d'un loup IA la première nuit, aux côtés d'un loup humain.
+
+    Il se rallie à la dernière proposition de l'humain ; sans proposition, il
+    en fait une au hasard en le disant, une seule fois, puis s'y tient.
+    """
+    human_target = next(
+        (round_proposals.get(h.id) or last_proposal.get(h.id)
+         for h in human_wolves if round_proposals.get(h.id) or last_proposal.get(h.id)),
+        None,
+    )
+    own = last_proposal.get(wolf.id)
+    if human_target is not None:
+        message = None if human_target == own else f"D'accord pour {state.players[human_target].pseudo}."
+        target = human_target
+    elif own is not None:
+        message, target = None, own
+    else:
+        target = rng.choice(alive_non_wolf_ids)
+        message = (
+            f"Première nuit, on ne sait rien de personne : je propose "
+            f"{state.players[target].pseudo}, au hasard."
+        )
+    return {"message": message, "action": {"type": ActionType.NIGHT_KILL_TARGET.value, "target": target}}
+
+
 def resolve_wolf_phase(
     state: GameState,
     provider: ActionProvider,
@@ -43,6 +88,18 @@ def resolve_wolf_phase(
     # propositions de la nuit précédente avec celles de la nuit en cours.
     state.wolf_room_log.append({"author": None, "text": f"🌙 Nuit {state.cycle}"})
 
+    human_wolves = [w for w in wolves if w.is_human]
+    blind = _first_night(state)
+    if blind and not human_wolves:
+        # Deux loups IA et aucune information : pas de concertation à mener.
+        target = rng.choice(alive_non_wolf_ids)
+        state.wolf_room_log.append({
+            "author": None,
+            "text": f"Première nuit, personne ne sait rien : le sort désigne "
+                    f"{state.players[target].pseudo}.",
+        })
+        return target
+
     for round_number in range(1, MAX_WOLF_ROUNDS + 1):
         round_proposals: dict[str, str] = {}
         state.wolf_room_log.append({
@@ -51,8 +108,13 @@ def resolve_wolf_phase(
         })
 
         for wolf in wolves:
-            context = build_context(state, wolf, [ActionType.NIGHT_KILL_TARGET.value])
-            response = provider.get_action(wolf.id, context)
+            if blind and not wolf.is_human:
+                response = _blind_ally_response(
+                    state, wolf, human_wolves, round_proposals, last_proposal, alive_non_wolf_ids, rng
+                )
+            else:
+                context = build_context(state, wolf, [ActionType.NIGHT_KILL_TARGET.value])
+                response = provider.get_action(wolf.id, context)
 
             # Ce que le loup dit est publié dans le salon des loups même si
             # l'action qui l'accompagne est refusée : c'est de la parole,
@@ -136,7 +198,11 @@ def resolve_witch_phase(
             healed = True
 
     poisoned_id: str | None = None
-    if not witch.witch_poison_used:
+    # La première nuit, une sorcière IA n'a aucun suspect : son poison serait
+    # tiré à l'aveugle, on ne le lui propose donc pas. Le soin reste une vraie
+    # décision (elle sait qui est visé), et l'humaine garde tous ses choix.
+    blind_ai_witch = _first_night(state) and not witch.is_human
+    if not witch.witch_poison_used and not blind_ai_witch:
         poisoned_id = _ask_witch(state, provider, witch, wolf_target, ActionType.WITCH_POISON)
         if poisoned_id is not None:
             witch.witch_poison_used = True
