@@ -30,7 +30,7 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false   # à renseigner dans le dashboard Render
       - key: OPENROUTER_MODELS
-        value: google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free
+        value: google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,openrouter/free
       - key: GROQ_API_KEY
         sync: false   # à renseigner dans le dashboard Render ; fournisseur principal
       - key: GROQ_MODELS
