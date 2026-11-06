@@ -118,6 +118,15 @@ class AIActionProvider:
         legal_action_types = context.get("legal_action_types", [])
         example_id = alive_players[0]["id"] if alive_players else "ia_1"
         example_pseudo = alive_players[0]["pseudo"] if alive_players else "Fatima"
+        # Le prompt d'un loup contient aussi son salon privé : de jour, sans
+        # ce rappel, un modèle peut en reprendre le contenu dans le chat public.
+        day_warning = ""
+        if context.get("self_role") == Role.LOUP.value and str(phase).startswith("jour"):
+            day_warning = (
+                " ATTENTION : ce que tu écris ici est lu par tout le village, "
+                "villageois compris. Ne mentionne jamais le salon des loups, ton allié "
+                "loup, ni vos discussions ou cibles de la nuit : fais-toi passer pour un villageois."
+            )
         return (
             f"Phase actuelle : {phase}. Actions autorisées : {legal_action_types}. "
             f'IMPORTANT : le champ "target" doit être exactement un identifiant seul, '
@@ -125,6 +134,7 @@ class AIActionProvider:
             "jamais le pseudo, jamais de parenthèses ni de ponctuation ajoutée. "
             'Dans "message", en revanche, désigne toujours les joueurs par leur pseudo, '
             "jamais par leur identifiant."
+            + day_warning
         )
 
     def _build_user_content(self, player_id: str, context: dict) -> str:

@@ -187,3 +187,26 @@ def test_get_action_replaces_internal_ids_by_pseudos_in_the_message():
     result = provider.get_action("ia_2", context)
     assert result["message"] == "Je vise Sarah pour éliminer Sarah, et Capucine aussi."
     assert result["action"]["target"] == "ia_1"
+
+
+def _day_context(role, phase="jour_debat"):
+    return {"phase": phase, "self_role": role, "main_room_log": [],
+            "alive_players": [{"id": "ia_1", "pseudo": "Fatima"}]}
+
+
+def test_wolf_is_warned_during_the_day_that_the_village_reads_its_messages():
+    client = FakeClient(['{"message": null, "action": null}'] * 2)
+    provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.LOUP}, {"ia_1": "stratege"})
+    provider.get_action("ia_1", _day_context("loup", "jour_debat"))
+    provider.get_action("ia_1", _day_context("loup", "jour_vote"))
+    for call in client.calls:
+        assert "lu par tout le village" in call["user_content"]
+
+
+def test_wolf_is_not_given_the_day_warning_at_night_nor_to_non_wolves():
+    client = FakeClient(['{"message": null, "action": null}'] * 2)
+    provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.LOUP}, {"ia_1": "stratege"})
+    provider.get_action("ia_1", _day_context("loup", "nuit_loups"))
+    provider.get_action("ia_1", _day_context("villageois", "jour_debat"))
+    for call in client.calls:
+        assert "lu par tout le village" not in call["user_content"]
