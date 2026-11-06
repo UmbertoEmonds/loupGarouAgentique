@@ -36,20 +36,22 @@
     </aside>
 
     <main class="flex min-h-0 flex-col gap-3">
-      <section class="panel flex min-h-48 flex-[2] flex-col p-3 lg:min-h-0">
-        <h2 class="mb-2 font-display text-lg text-ember">Place du village</h2>
+     <div class="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row">
+      <section class="panel flex min-h-48 flex-[3] flex-col p-3 lg:min-h-0">
+        <h2 class="mb-1 font-display text-lg text-ember">Place du village</h2>
         <div id="main-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
 
-      <section id="wolf-room" class="panel hidden min-h-32 flex-1 flex-col border-eye/40 p-3 lg:min-h-0">
-        <h2 class="mb-2 font-display text-lg text-eye">Antre des loups <span id="wolf-mates" class="text-sm text-parchment/70"></span></h2>
+      <section id="wolf-room" class="panel hidden min-h-32 flex-[2] flex-col border-eye/40 p-3 lg:min-h-0">
+        <h2 class="mb-1 font-display text-lg text-eye">Antre des loups <span id="wolf-mates" class="text-sm text-parchment/70"></span></h2>
         <div id="wolf-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
+     </div>
 
       <section id="action" class="panel shrink-0 p-3">
         <div id="status" class="text-parchment/80"></div>
-        <form id="form" class="hidden space-y-3">
-          <p id="prompt" class="font-display text-lg"></p>
+        <form id="form" class="hidden space-y-2">
+          <p id="prompt" class="font-display text-base"></p>
           <div id="targets" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"></div>
           <textarea id="message" rows="2" maxlength="500" class="field hidden" placeholder="Ton message…"></textarea>
           <div class="flex flex-wrap items-center gap-2" id="buttons"></div>
