@@ -38,6 +38,14 @@ class ViewTests(SimpleTestCase):
             resp = owner.post("/nouvelle-partie/", {"pseudo": "Alice", "role": value})
             self.assertEqual(resp["Location"], "/jouer/")
 
+    def test_reserved_pseudos_are_refused(self):
+        for pseudo in ("Narrateur", "narrateur", "Sarah", " sarah "):
+            resp = Client().post("/nouvelle-partie/", {"pseudo": pseudo})
+            self.assertIn("erreur=pseudo-reserve", resp["Location"])
+
+    def test_reserved_pseudo_error_is_explained(self):
+        self.assertContains(Client().get("/?erreur=pseudo-reserve"), "déjà pris")
+
     def test_play_redirects_without_game(self):
         self.assertEqual(Client().get("/jouer/").status_code, 302)
 
