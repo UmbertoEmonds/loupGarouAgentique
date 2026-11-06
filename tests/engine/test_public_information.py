@@ -59,6 +59,6 @@ def test_votes_are_announced_publicly_before_the_result():
 def test_a_tie_is_announced():
     state = make_state()
     _engine(state).run_day_cycle(
-        VoteFor({"human": "ia_1", "ia_1": "ia_3", "ia_2": "ia_1", "ia_3": "ia_3"}), is_time_up=lambda: True
+        VoteFor({"human": "ia_1", "ia_1": "human", "ia_2": "ia_1", "ia_3": "human"}), is_time_up=lambda: True
     )
     assert state.main_room_log[-1] == {"author": None, "text": "Égalité : personne n'est éliminé aujourd'hui."}

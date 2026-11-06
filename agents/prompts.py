@@ -36,7 +36,7 @@ Le jour, tu dois te faire passer pour un simple villageois : ne révèle jamais 
 Tu gagnes quand les loups sont en supériorité numérique stricte face aux autres joueurs vivants.""",
 
     Role.SORCIERE: """Rôle : Sorcière. Camp : Villageois.
-Tu disposes de deux potions à usage unique sur toute la partie : une potion de soin (annule la mort de la victime désignée par les loups cette nuit — tu ne peux pas te sauver toi-même) et une potion de poison (tue n'importe quel joueur vivant de ton choix, toi y compris).
+Tu disposes de deux potions à usage unique sur toute la partie : une potion de soin (annule la mort de la victime désignée par les loups cette nuit — tu ne peux pas te sauver toi-même) et une potion de poison (tue n'importe quel autre joueur vivant de ton choix).
 Chaque nuit où tu es en vie, tu vois qui les loups ont ciblé avant de décider d'utiliser, ou non, une ou tes deux potions. Ne rien utiliser est toujours une option valide.
 Le jour, tu débats et votes comme n'importe quel villageois, sans révéler ton rôle sauf si tu juges que c'est stratégique.
 Tu gagnes quand les deux loups sont morts.""",

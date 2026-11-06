@@ -76,11 +76,12 @@ def test_a_mismatched_action_type_during_the_heal_sub_call_does_not_heal_anyone(
     assert state.get("ia_1").witch_heal_used is False
 
 
-def test_witch_may_poison_herself():
+def test_witch_cannot_poison_herself():
     state = make_state_with_witch("ia_1", others=["ia_2"])
     provider = ScriptedProvider({"ia_1": [decline(), poison("ia_1")]})
     healed, poisoned = resolve_witch_phase(state, provider, wolf_target="ia_2")
-    assert poisoned == "ia_1"
+    assert poisoned is None
+    assert state.get("ia_1").witch_poison_used is False
 
 
 def test_witch_cannot_reuse_a_potion_already_used_in_a_previous_cycle():
