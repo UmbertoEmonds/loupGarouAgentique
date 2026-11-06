@@ -233,3 +233,27 @@ def test_own_messages_are_marked_so_the_ai_does_not_repeat_or_lose_itself():
     content = client.calls[0]["user_content"]
     assert '<message auteur="Sarah (toi)">Baptiste</message>' in content
     assert '<message auteur="Capucine">ok</message>' in content
+
+
+def _first_night_context(main_room_log):
+    return {
+        "phase": "nuit_loups", "self_role": "loup",
+        "alive_players": [{"id": "ia_1", "pseudo": "Baptiste"}, {"id": "ia_2", "pseudo": "Sarah"}],
+        "main_room_log": main_room_log, "known_wolf_ids": ["human"], "wolf_room_log": [],
+    }
+
+
+def test_wolves_are_told_the_village_has_not_spoken_yet_on_the_first_night():
+    # Sans ce rappel, un loup inventait des faits la première nuit
+    # (« Sarah a trop parlé ») alors que personne n'avait encore rien dit.
+    client = FakeClient(['{"message": null, "action": null}'])
+    provider = AIActionProvider(client, {"ia_1": "Baptiste"}, {"ia_1": Role.LOUP}, {"ia_1": "paranoiaque"})
+    provider.get_action("ia_1", _first_night_context([{"author": None, "text": "🌙 La nuit tombe…"}]))
+    assert "personne n'a rien dit" in client.calls[0]["user_content"]
+
+
+def test_first_night_reminder_disappears_once_the_village_has_spoken():
+    client = FakeClient(['{"message": null, "action": null}'])
+    provider = AIActionProvider(client, {"ia_1": "Baptiste"}, {"ia_1": Role.LOUP}, {"ia_1": "paranoiaque"})
+    provider.get_action("ia_1", _first_night_context([{"author": "ia_2", "text": "Bonjour"}]))
+    assert "personne n'a rien dit" not in client.calls[0]["user_content"]

@@ -140,9 +140,34 @@ class AIActionProvider:
                 "villageois compris. Ne mentionne jamais le salon des loups, ton allié "
                 "loup, ni vos discussions ou cibles de la nuit : fais-toi passer pour un villageois."
             )
+        # Première nuit : aucun joueur n'a encore parlé dans le salon principal.
+        # Sans ce rappel, un modèle tenu d'« argumenter » inventait des faits :
+        # un loup accusait Sarah d'avoir « trop parlé », la sorcière empoisonnait
+        # au hasard en disant la « soupçonner ».
+        first_night_note = ""
+        village_has_spoken = any(
+            entry.get("author") is not None for entry in context.get("main_room_log") or []
+        )
+        no_clue = (
+            "C'est la première nuit : le village ne s'est encore jamais réuni, "
+            "personne n'a rien dit ni voté, donc tu n'as aucun indice sur personne "
+            "(le silence de chacun n'en est pas un). N'invente ni comportement, ni "
+            "trait de caractère, ni propos. "
+        )
+        if not village_has_spoken and phase == "nuit_loups":
+            first_night_note = no_clue + (
+                "Propose quand même une cible : dis franchement que c'est un choix au "
+                "hasard ou à l'instinct. "
+            )
+        elif not village_has_spoken and "witch_poison" in legal_action_types:
+            first_night_note = no_clue + (
+                "Empoisonner maintenant serait un tir à l'aveugle qui peut tuer un allié : "
+                "garde plutôt ta potion pour quand tu auras de vrais soupçons. "
+            )
         return (
             f"Phase actuelle : {phase}. Actions autorisées : {legal_action_types}. "
-            f'IMPORTANT : le champ "target" doit être exactement un identifiant seul, '
+            + first_night_note
+            + f'IMPORTANT : le champ "target" doit être exactement un identifiant seul, '
             f'par exemple "{example_id}" — jamais "{example_id} ({example_pseudo})", '
             "jamais le pseudo, jamais de parenthèses ni de ponctuation ajoutée. "
             'Dans "message", en revanche, désigne toujours les joueurs par leur pseudo, '
