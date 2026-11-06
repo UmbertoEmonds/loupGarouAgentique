@@ -50,8 +50,8 @@ class HumanProvider:
             answered = self._answered
             response = self._response if answered else None
             if not answered and not self._cancelled:
-                # Une fois le délai dépassé, on ne rattend pas pour cette phase
-                # (évite 2 x 75 s lors des tentatives répétées du vote).
+                # Une fois le délai dépassé, on ne rattend pas pour la même clé
+                # (évite 2 x 75 s lors de la relance du vote, qui réutilise la clé).
                 self._expired.add(key)
             self._pending = None
         self._on_change()
@@ -174,6 +174,7 @@ class RouterProvider:
         self.human = human
         self.stop = stop
         self.on_thinking = on_thinking or (lambda name: None)
+        self._turn = 0
 
     def get_action(self, player_id: str, context: dict) -> dict | None:
         # Partie abandonnée : on répond None tout de suite, le moteur applique ses replis.
@@ -197,6 +198,12 @@ class RouterProvider:
 
         pending = describe_request(state, player, context)
         key = (state.cycle, context["phase"], tuple(context.get("legal_action_types") or []))
+        if context["phase"] != Phase.JOUR_VOTE.value:
+            # Chaque tour de parole ou de concertation est une nouvelle demande : un
+            # délai dépassé ne fait que passer ce tour-là. Seule la relance immédiate
+            # du vote (même clé) est sautée, pour ne pas attendre deux fois de suite.
+            self._turn += 1
+            key += (self._turn,)
         return self.human.ask(key, pending)
 
 
