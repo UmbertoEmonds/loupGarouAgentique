@@ -175,10 +175,11 @@ class _ChatCompletionClient:
 
 
 class OpenRouterClient(_ChatCompletionClient):
-    """Secours quand tous les modèles Groq sont à quota. Modèles gratuits
-    (« :free ») nommés explicitement, sans le routeur « openrouter/free » qui
-    tombait sur des modèles au hasard, souvent chinois. Sans crédit sur le
-    compte, le palier gratuit est limité à 50 requêtes par jour."""
+    """Secours quand tous les modèles Groq sont à quota : modèles gratuits
+    (« :free ») nommés explicitement, puis le routeur « openrouter/free » en
+    dernier recours. Ce routeur tombe sur des modèles au hasard (parfois
+    chinois), mais il répondait encore quand les modèles nommés avaient
+    atteint la limite de 50 requêtes par jour du compte sans crédit."""
 
     URL = OPENROUTER_URL
     MODELS_ENV_VAR = "OPENROUTER_MODELS"
