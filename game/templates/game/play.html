@@ -28,21 +28,21 @@
   <div id="conn" class="hidden rounded-lg bg-blood-dark/80 px-3 py-2 text-center text-sm">Connexion perdue… reconnexion en cours.</div>
 
   <div class="grid flex-1 gap-4 lg:grid-cols-[16rem_1fr]">
-    <aside class="panel p-3">
+    <aside class="panel self-start p-3">
       <h2 class="mb-2 font-display text-lg text-ember">Le village</h2>
       <ul id="players" class="grid grid-cols-2 gap-2 lg:grid-cols-1"></ul>
       <div id="witch" class="inset mt-3 hidden rounded-lg p-2 text-sm"></div>
     </aside>
 
     <main class="flex min-h-0 flex-col gap-4">
-      <section class="panel flex h-72 flex-col p-3 sm:h-96">
+      <section class="panel flex min-h-72 flex-[2] flex-col p-3">
         <h2 class="mb-2 font-display text-lg text-ember">Place du village</h2>
-        <div id="main-log" class="flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
+        <div id="main-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
 
-      <section id="wolf-room" class="panel hidden h-44 flex-col border-eye/40 p-3">
+      <section id="wolf-room" class="panel hidden min-h-44 flex-1 flex-col border-eye/40 p-3">
         <h2 class="mb-2 font-display text-lg text-eye">Antre des loups <span id="wolf-mates" class="text-sm text-parchment/70"></span></h2>
-        <div id="wolf-log" class="flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
+        <div id="wolf-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
 
       <section id="action" class="panel p-4">
