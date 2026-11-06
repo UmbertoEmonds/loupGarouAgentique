@@ -5,7 +5,7 @@ import time
 from typing import Callable
 
 from engine import day, night, roster, victory
-from engine.models import Camp, GameState, Phase
+from engine.models import Camp, GameState, Phase, Role
 from engine.provider import ActionProvider
 
 
@@ -17,8 +17,8 @@ class GameEngine:
         self.rng = rng or random.Random()
         self.state: GameState | None = None
 
-    def start(self, human_pseudo: str) -> GameState:
-        self.state = roster.new_game(human_pseudo, rng=self.rng)
+    def start(self, human_pseudo: str, human_role: Role | None = None) -> GameState:
+        self.state = roster.new_game(human_pseudo, rng=self.rng, human_role=human_role)
         return self.state
 
     def run_night_cycle(self, provider: ActionProvider) -> list[str]:

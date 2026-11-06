@@ -68,7 +68,7 @@ class GameSession:
         return self.active and key is not None and key == self.owner
 
     # --- démarrage / arrêt --------------------------------------------------
-    def start(self, owner: str, pseudo: str) -> bool:
+    def start(self, owner: str, pseudo: str, human_role: Role | None = None) -> bool:
         """Lance une partie. False si la partie en cours appartient à quelqu'un d'autre.
 
         Le propriétaire peut toujours en relancer une : la sienne est alors arrêtée.
@@ -84,7 +84,7 @@ class GameSession:
             self.owner = owner
             gen, stop = self._gen, self._stop
             self.engine = GameEngine(debate_duration_s=settings.DEBATE_DURATION_S, rng=random.Random())
-            state = self.engine.start(pseudo)
+            state = self.engine.start(pseudo, human_role)
             self.human = HumanProvider(settings.HUMAN_TIMEOUT_S, on_change=self.publish)
             engine = self.engine
             cost_tracker = None if settings.FAKE_AI else RoundCostTracker(lambda: engine.state.cycle)

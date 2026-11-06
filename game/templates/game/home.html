@@ -27,6 +27,17 @@
           <span class="mb-1 block font-display text-lg">Ton pseudo</span>
           <input name="pseudo" maxlength="20" required autofocus autocomplete="nickname" class="field" placeholder="ex : Capucine">
         </label>
+        <fieldset>
+          <legend class="mb-1 font-display text-lg">Ton rôle</legend>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {% for value, label in roles %}
+            <label class="inset cursor-pointer rounded-lg px-3 py-2 text-center has-[:checked]:ring-2 has-[:checked]:ring-ember">
+              <input type="radio" name="role" value="{{ value }}" class="sr-only"{% if forloop.first %} checked{% endif %}>
+              {{ label }}
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
         <button class="btn btn-primary w-full text-lg" type="submit">Commencer une partie</button>
       </form>
     {% endif %}
@@ -35,6 +46,6 @@
     </p>
   </section>
 
-  <p class="mt-6 max-w-md text-sm text-parchment/60">6 joueurs : 2 loups-garous, 1 sorcière, 3 villageois. Ton rôle est tiré au sort et reste secret.</p>
+  <p class="mt-6 max-w-md text-sm text-parchment/60">6 joueurs : 2 loups-garous, 1 sorcière, 3 villageois. Ton rôle est tiré au sort, sauf si tu le choisis ; il reste secret.</p>
 </main>
 {% endblock %}

@@ -21,6 +21,23 @@ class ViewTests(SimpleTestCase):
     def test_home_renders(self):
         self.assertContains(Client().get("/"), "Commencer une partie")
 
+    def test_home_offers_the_role_choice(self):
+        resp = Client().get("/")
+        for value in ("aleatoire", "loup", "sorciere", "villageois"):
+            self.assertContains(resp, f'value="{value}"')
+
+    def test_chosen_role_is_given_to_the_human(self):
+        owner = Client()
+        for value in ("loup", "sorciere", "villageois"):
+            owner.post("/nouvelle-partie/", {"pseudo": "Alice", "role": value})
+            self.assertEqual(session.engine.state.players["human"].role.value, value)
+
+    def test_unknown_or_random_role_choice_falls_back_to_random(self):
+        owner = Client()
+        for value in ("aleatoire", "dieu", ""):
+            resp = owner.post("/nouvelle-partie/", {"pseudo": "Alice", "role": value})
+            self.assertEqual(resp["Location"], "/jouer/")
+
     def test_play_redirects_without_game(self):
         self.assertEqual(Client().get("/jouer/").status_code, 302)
 
