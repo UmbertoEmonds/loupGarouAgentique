@@ -46,7 +46,6 @@ class GameSession:
         self.ai_health = AIHealth()
         # Modèle utilisé et jetons cumulés de la partie, affichés en temps réel.
         self.ai_stats = {"model": None, "calls": 0, "total_tokens": 0}
-        self._shown_ai_stats = dict(self.ai_stats)
         self._stats_lock = threading.Lock()
         self._gen = object()  # identifie la partie courante (les anciens threads s'arrêtent)
         self._stop = threading.Event()
@@ -232,13 +231,11 @@ class GameSession:
             }
         self.publish()
 
-    def _public_ai_stats(self, phase: Phase) -> dict:
-        """Statistiques affichées : figées la nuit, sinon le nombre d'appels trahirait
-        si la sorcière est vivante ou combien de tours les loups ont négocié."""
+    def _public_ai_stats(self) -> dict:
+        """Badge de transparence destiné à l'humain, hors du jeu : mis à jour à
+        chaque appel, nuit comprise."""
         with self._stats_lock:
-            if phase not in (Phase.NUIT_LOUPS, Phase.NUIT_SORCIERE):
-                self._shown_ai_stats = dict(self.ai_stats)
-            return dict(self._shown_ai_stats)
+            return dict(self.ai_stats)
 
     def snapshot(self) -> dict:
         if not self.active:
@@ -288,7 +285,7 @@ class GameSession:
             "wolf_mates": [p.pseudo for p in state.wolves() if p.id != me.id] if wolf_visible else None,
             "thinking": self.thinking,
             "ai_down": self.ai_health.down,
-            "ai_stats": self._public_ai_stats(state.phase),
+            "ai_stats": self._public_ai_stats(),
             "pending": pending,
             "debate_deadline": self.debate_deadline if state.phase == Phase.JOUR_DEBAT else None,
             "running": self.running,
