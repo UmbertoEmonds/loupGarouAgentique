@@ -56,6 +56,13 @@ def resolve_wolf_phase(
 
             target = validated_target(state, wolf.id, response, ActionType.NIGHT_KILL_TARGET)
             if target is not None:
+                # La cible choisie est annoncée aux loups : sinon seul le
+                # texte du message est visible et un loup ne peut pas savoir
+                # ce que son allié a réellement désigné.
+                state.wolf_room_log.append({
+                    "author": None,
+                    "text": f"{wolf.pseudo} propose {state.players[target].pseudo}.",
+                })
                 round_proposals[wolf.id] = target
                 last_proposal[wolf.id] = target
 
