@@ -55,6 +55,7 @@ class _ChatCompletionClient:
         api_key: str | None = None,
         session=None,
         on_usage=None,
+        on_call=None,
     ):
         self.models = (
             models if models is not None
@@ -65,6 +66,8 @@ class _ChatCompletionClient:
         self.session = session if session is not None else requests.Session()
         # Rappel optionnel recevant le dict `usage` (jetons) de chaque appel réussi.
         self.on_usage = on_usage
+        # Rappel optionnel (modèle réellement utilisé, usage) de chaque appel réussi.
+        self.on_call = on_call
 
     def _post(self, model: str, system_prompt: str, user_content: str):
         return self.session.post(
@@ -102,6 +105,7 @@ class _ChatCompletionClient:
         if not isinstance(content, str):
             return None
         self._report_usage(body)
+        self._report_call(model, body)
         return content
 
     def _report_usage(self, body) -> None:
@@ -112,6 +116,16 @@ class _ChatCompletionClient:
         except Exception:
             # Le suivi des coûts ne doit jamais faire échouer un appel au LLM.
             pass
+
+    def _report_call(self, requested_model: str, body) -> None:
+        if self.on_call is None or not isinstance(body, dict):
+            return
+        try:
+            # OpenRouter indique le modèle réellement servi, qui peut différer de celui demandé.
+            model = body.get("model") if isinstance(body.get("model"), str) else requested_model
+            self.on_call(model, body.get("usage"))
+        except Exception:
+            pass  # l'affichage ne doit jamais faire échouer un appel au LLM
 
     def complete(self, system_prompt: str, user_content: str) -> str:
         for model in self.models:

@@ -44,6 +44,9 @@ class GameSession:
         self.human: HumanProvider | None = None
         self.thinking: str | None = None
         self.ai_health = AIHealth()
+        # Modèle utilisé et jetons cumulés de la partie, affichés en temps réel.
+        self.ai_stats = {"model": None, "calls": 0, "total_tokens": 0}
+        self._stats_lock = threading.Lock()
         self._gen = object()  # identifie la partie courante (les anciens threads s'arrêtent)
         self._stop = threading.Event()
         self.running = False
@@ -90,7 +93,8 @@ class GameSession:
             cost_tracker = None if settings.FAKE_AI else RoundCostTracker(lambda: engine.state.cycle)
             ai = build_ai_provider(state, fake=settings.FAKE_AI, fake_delay_s=settings.FAKE_AI_DELAY_S,
                                   health=self.ai_health,
-                                  on_usage=cost_tracker.record if cost_tracker else None)
+                                  on_usage=cost_tracker.record if cost_tracker else None,
+                                  on_call=lambda model, usage: self._record_ai_call(gen, model, usage))
             provider = RouterProvider(
                 self.engine, ai, self.human, stop,
                 on_thinking=lambda name: self._set_thinking(gen, name),
@@ -208,6 +212,25 @@ class GameSession:
             layer.group_send(GROUP, {"type": "game.state", "payload": payload}), loop
         )
 
+    def _record_ai_call(self, gen, model: str, usage: dict | None) -> None:
+        """Cumule le modèle et les jetons d'un appel LLM réussi, puis pousse l'état aux clients."""
+        usage = usage if isinstance(usage, dict) else {}
+
+        def count(key: str) -> int:
+            value = usage.get(key)
+            return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+
+        total = count("total_tokens") or count("prompt_tokens") + count("completion_tokens")
+        with self._stats_lock:
+            if gen is not self._gen:
+                return  # appel d'une ancienne partie, déjà remplacée
+            self.ai_stats = {
+                "model": model,
+                "calls": self.ai_stats["calls"] + 1,
+                "total_tokens": self.ai_stats["total_tokens"] + total,
+            }
+        self.publish()
+
     def snapshot(self) -> dict:
         if not self.active:
             return {"active": False}
@@ -256,6 +279,7 @@ class GameSession:
             "wolf_mates": [p.pseudo for p in state.wolves() if p.id != me.id] if wolf_visible else None,
             "thinking": self.thinking,
             "ai_down": self.ai_health.down,
+            "ai_stats": dict(self.ai_stats),
             "pending": pending,
             "debate_deadline": self.debate_deadline if state.phase == Phase.JOUR_DEBAT else None,
             "running": self.running,

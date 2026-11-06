@@ -103,3 +103,34 @@ class AbandonTests(SimpleTestCase):
         session.abandon()
         self.assertFalse(session.running)
         self.assertIsNone(session.thinking)
+
+
+@override_settings(FAKE_AI=True, FAKE_AI_DELAY_S=0, PHASE_PAUSE_S=0, HUMAN_TIMEOUT_S=0.05, DEBATE_DURATION_S=5)
+class AIStatsTests(SimpleTestCase):
+    def setUp(self):
+        session.abandon()
+        session.reset()
+
+    def tearDown(self):
+        session.abandon()
+
+    def test_stats_start_empty_in_the_snapshot(self):
+        session.start("owner", "Alice")
+        stats = session.snapshot()["ai_stats"]
+        self.assertEqual(stats["total_tokens"], 0)
+        self.assertEqual(stats["calls"], 0)
+
+    def test_each_call_updates_the_model_and_cumulates_tokens(self):
+        session.start("owner", "Alice")
+        gen = session._gen
+        session._record_ai_call(gen, "vendor/model-a", {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10})
+        session._record_ai_call(gen, "vendor/model-b", {"prompt_tokens": 4, "completion_tokens": 1})
+        stats = session.snapshot()["ai_stats"]
+        self.assertEqual(stats, {"model": "vendor/model-b", "calls": 2, "total_tokens": 15})
+
+    def test_calls_from_an_older_game_are_ignored(self):
+        session.start("owner", "Alice")
+        old_gen = session._gen
+        session.start("owner", "Alice")
+        session._record_ai_call(old_gen, "old", {"total_tokens": 99})
+        self.assertEqual(session.snapshot()["ai_stats"]["total_tokens"], 0)

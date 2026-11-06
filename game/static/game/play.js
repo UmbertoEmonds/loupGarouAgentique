@@ -144,9 +144,17 @@
     e.classList.remove("hidden");
   }
 
+  function renderAiStats(stats) {
+    const chip = $("ai-stats");
+    const tokens = stats.total_tokens.toLocaleString("fr-FR");
+    chip.textContent = `🤖 ${stats.model || "en attente d'un appel"} · ${tokens} jeton${stats.total_tokens > 1 ? "s" : ""}`;
+    chip.title = `Modèle d'IA utilisé · ${stats.calls} appel${stats.calls > 1 ? "s" : ""} · ${tokens} jetons consommés par la partie`;
+  }
+
   function render() {
     const s = state;
     if (!s || !s.active) { location.href = "/"; return; }
+    renderAiStats(s.ai_stats);
     $("scene").classList.toggle("night", s.is_night);
     $("scene").classList.toggle("day", !s.is_night);
     $("ai-down").classList.toggle("hidden", !s.ai_down);
