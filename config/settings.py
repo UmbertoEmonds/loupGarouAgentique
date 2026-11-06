@@ -1,8 +1,12 @@
-"""Réglages Django : un seul process, aucune base de données (état en mémoire)."""
+"""Réglages Django : un seul process, état de partie en mémoire.
+
+La base de données ne sert qu'au suivi des coûts en jetons (app `monitoring`).
+"""
 
 import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +25,16 @@ CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if "." in h and h 
 
 INSTALLED_APPS = [
     "daphne",
+    # Admin Django (/admin/) : consultation des coûts en jetons (app monitoring).
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.messages",
     "django.contrib.staticfiles",
     "channels",
     "django_tailwind_cli",
     "game",
+    "monitoring",
 ]
 
 MIDDLEWARE = [
@@ -33,6 +43,9 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -42,12 +55,26 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "APP_DIRS": True,
-        "OPTIONS": {"context_processors": ["django.template.context_processors.request"]},
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ]
+        },
     }
 ]
 
-# Pas de BDD : sessions dans un cookie signé, état de partie en mémoire.
-DATABASES = {}
+# Base de données : PostgreSQL via DATABASE_URL (production), sinon SQLite local.
+# L'état de partie reste en mémoire ; la base sert au suivi des coûts (monitoring).
+DATABASES = {
+    "default": dj_database_url.config(
+        default=f"sqlite:///{(BASE_DIR / 'db.sqlite3').as_posix()}",
+        conn_max_age=60,
+        conn_health_checks=True,
+    )
+}
+# Sessions dans un cookie signé : pas besoin de table de sessions.
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_HTTPONLY = True
 

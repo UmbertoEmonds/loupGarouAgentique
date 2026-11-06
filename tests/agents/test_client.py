@@ -156,3 +156,26 @@ def test_fallback_client_raises_the_last_clients_error_when_all_fail():
 def test_fallback_client_requires_at_least_one_client():
     with pytest.raises(ValueError):
         FallbackClient([])
+
+def test_complete_passes_the_usage_of_a_successful_call_to_on_usage():
+    usage = {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10}
+    payload = {"choices": [{"message": {"content": "ok"}}], "usage": usage}
+    seen = []
+    session = FakeSession([FakeResponse(200, payload)])
+    client = OpenRouterClient(models=["m"], api_key="k", session=session, on_usage=seen.append)
+    assert client.complete("sys", "user") == "ok"
+    assert seen == [usage]
+
+def test_on_usage_is_only_called_for_the_successful_attempt():
+    seen = []
+    session = FakeSession([FakeResponse(500, {"usage": {"total_tokens": 1}}), ok_response("ok")])
+    client = OpenRouterClient(models=["a", "b"], api_key="k", session=session, on_usage=seen.append)
+    client.complete("sys", "user")
+    assert seen == [None]  # ok_response ne contient pas d'usage
+
+def test_a_failing_on_usage_callback_never_breaks_the_call():
+    def boom(_usage):
+        raise RuntimeError
+    session = FakeSession([ok_response("ok")])
+    client = OpenRouterClient(models=["m"], api_key="k", session=session, on_usage=boom)
+    assert client.complete("sys", "user") == "ok"

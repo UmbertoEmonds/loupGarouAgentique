@@ -16,3 +16,5 @@ CLAUDE.md
 .django_tailwind_cli/
 assets/css/
 .vscode
+.pytest_cache/
+cost_efficiency/
