@@ -19,7 +19,7 @@ from engine.context import build_context
 from engine.models import ActionType, Phase, Role
 
 NARRATOR_NIGHT = {"author": None, "text": "🌙 La nuit tombe, le village s'endort…"}
-FIRST_NIGHT_NOTE = "C'est la première nuit"
+FIRST_NIGHT_NOTE = "jamais réuni"
 
 
 def _game():
@@ -62,6 +62,7 @@ def _scenarios():
 def _render(name, phase, role, main_log, wolf_log, actions):
     state, provider = _game()
     state.phase = phase
+    state.cycle = 2 if name.startswith("nuit 2") else 1
     state.main_room_log = list(main_log)
     state.wolf_room_log = list(wolf_log)
     player = _ai_with_role(state, role)
@@ -79,7 +80,7 @@ def _render(name, phase, role, main_log, wolf_log, actions):
 def test_every_phase_renders_a_prompt(scenario):
     system, user = _render(*scenario)
     assert system and user
-    assert "Phase actuelle" in user
+    assert "Scène :" in user
 
 
 def test_first_night_wolf_is_told_nobody_has_spoken_yet():
@@ -92,6 +93,20 @@ def test_later_nights_drop_the_first_night_note():
     assert FIRST_NIGHT_NOTE not in user
 
 
+def test_first_speaker_of_the_day_knows_nobody_has_spoken_yet():
+    # Sans ce fait, le premier à parler inventait : « Benji, pourquoi es-tu le
+    # premier à parler ? » alors que Benji n'avait rien dit.
+    _, first = _render(*_scenarios()[2])
+    _, later = _render(*_scenarios()[3])
+    assert "personne n'a encore pris la parole aujourd'hui" in first
+    assert "personne n'a encore pris la parole aujourd'hui" not in later
+
+
+def test_agents_know_the_village_sleeps_at_night():
+    system, _ = _render(*_scenarios()[2])
+    assert "La nuit, le village dort : personne n'a rien vu ni entendu" in system
+
+
 @pytest.mark.parametrize("scenario", [s for s in _scenarios() if s[2] != Role.LOUP], ids=lambda s: s[0])
 def test_non_wolves_never_see_the_wolf_room(scenario):
     _, user = _render(*scenario)
@@ -99,18 +114,17 @@ def test_non_wolves_never_see_the_wolf_room(scenario):
     assert "Tour de concertation" not in user
 
 
-def test_first_night_witch_is_told_she_has_no_clue_before_poisoning():
+def test_first_night_witch_knows_the_village_never_met_and_nobody_reads_her():
     # Partie réelle du 2026-11-06 : la sorcière a empoisonné Sarah dès la
     # nuit 1 (« je soupçonne Sarah ») alors que personne n'avait parlé.
     name, phase, role, main_log, wolf_log, _ = _scenarios()[1]
     _, user = _render(name, phase, role, main_log, wolf_log, [ActionType.WITCH_POISON.value])
-    assert "aucun indice" in user
+    assert FIRST_NIGHT_NOTE in user
+    assert "aucun joueur ne lit ton message" in user
 
 
-def test_witch_heal_and_later_poison_have_no_first_night_note():
-    _, heal = _render(*_scenarios()[1])
+def test_witch_later_poison_has_no_first_night_note():
     day_log = _scenarios()[4][3]
     _, poison = _render("nuit 2 - sorcière", Phase.NUIT_SORCIERE, Role.SORCIERE, day_log, [],
                         [ActionType.WITCH_POISON.value])
-    assert "aucun indice" not in heal
-    assert "aucun indice" not in poison
+    assert FIRST_NIGHT_NOTE not in poison

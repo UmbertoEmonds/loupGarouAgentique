@@ -126,53 +126,98 @@ class AIActionProvider:
             f"{self._format_player(target, self._pseudo(target, pseudo_lookup))}."
         ]
 
-    def _instructions_line(self, context: dict, alive_players: list[dict]) -> str:
+    def _scene_line(self, context: dict, pseudo_lookup: dict[str, str]) -> str:
+        """Décrit en mots la scène du tour : où l'agent parle, qui le lit, ce qu'on attend.
+
+        Sans cette description, un modèle recevait un simple code de phase et
+        parlait comme en débat public : il saluait « tout le monde » dans
+        l'antre des loups, et inventait des soupçons la première nuit faute de
+        savoir que le village ne s'était encore jamais réuni.
+        """
         phase = context.get("phase")
-        legal_action_types = context.get("legal_action_types", [])
-        example_id = alive_players[0]["id"] if alive_players else "ia_1"
-        example_pseudo = alive_players[0]["pseudo"] if alive_players else "Fatima"
-        # Le prompt d'un loup contient aussi son salon privé : de jour, sans
-        # ce rappel, un modèle peut en reprendre le contenu dans le chat public.
-        day_warning = ""
-        if context.get("self_role") == Role.LOUP.value and str(phase).startswith("jour"):
-            day_warning = (
+        legal = context.get("legal_action_types") or []
+        cycle = context.get("cycle", 1)
+        village_has_spoken = any(
+            entry.get("author") is not None for entry in context.get("main_room_log") or []
+        )
+        never_met = (
+            " Le village ne s'est encore jamais réuni : personne n'a parlé ni voté."
+            if not village_has_spoken else ""
+        )
+
+        if phase == "nuit_loups":
+            allies = [self._pseudo(wid, pseudo_lookup) for wid in context.get("known_wolf_ids") or []]
+            if allies:
+                readers = " et ".join(allies)
+                # Tournure sans accord : le genre du pseudo humain est inconnu.
+                return (
+                    f"Scène : nuit {cycle}, dans l'antre des loups. Salon privé : personne "
+                    f"d'autre que {readers} ne te lit. Mettez-vous d'accord sur la victime de "
+                    f"cette nuit (jamais {readers}, jamais toi).{never_met}"
+                )
+            return (
+                f"Scène : nuit {cycle}. Tu es le dernier loup : personne ne te lit, "
+                f"choisis seul la victime de cette nuit.{never_met}"
+            )
+        if phase == "nuit_sorciere":
+            question = (
+                "Utilises-tu ta potion de soin sur la cible des loups ?"
+                if "witch_heal" in legal
+                else "Utilises-tu ta potion de poison, et sur qui ?"
+            )
+            return f"Scène : nuit {cycle}. Tu décides sans personne, aucun joueur ne lit ton message. {question}{never_met}"
+
+        # De jour, un loup a aussi son salon privé sous les yeux : sans ce
+        # rappel, un modèle peut en reprendre le contenu dans le chat public.
+        wolf_warning = ""
+        if context.get("self_role") == Role.LOUP.value:
+            wolf_warning = (
                 " ATTENTION : ce que tu écris ici est lu par tout le village, "
                 "villageois compris. Ne mentionne jamais le salon des loups, ton allié "
                 "loup, ni vos discussions ou cibles de la nuit : fais-toi passer pour un villageois."
             )
-        # Première nuit : aucun joueur n'a encore parlé dans le salon principal.
-        # Sans ce rappel, un modèle tenu d'« argumenter » inventait des faits :
-        # un loup accusait Sarah d'avoir « trop parlé », la sorcière empoisonnait
-        # au hasard en disant la « soupçonner ».
-        first_night_note = ""
-        village_has_spoken = any(
-            entry.get("author") is not None for entry in context.get("main_room_log") or []
-        )
-        no_clue = (
-            "C'est la première nuit : le village ne s'est encore jamais réuni, "
-            "personne n'a rien dit ni voté, donc tu n'as aucun indice sur personne "
-            "(le silence de chacun n'en est pas un). N'invente ni comportement, ni "
-            "trait de caractère, ni propos. "
-        )
-        if not village_has_spoken and phase == "nuit_loups":
-            first_night_note = no_clue + (
-                "Propose quand même une cible : dis franchement que c'est un choix au "
-                "hasard ou à l'instinct. "
+        if phase == "jour_vote":
+            return f"Scène : jour {cycle}, vote public : tout le village verra ton vote. Désigne qui éliminer.{wolf_warning}"
+        public = f"Scène : jour {cycle}, débat public sur la place du village : tous les joueurs vivants te lisent. "
+        if not self._spoke_today(context):
+            # Premier message du jour : il n'existe encore rien à soupçonner. Exiger
+            # un soupçon ici faisait inventer des faits (« tes yeux ont brillé »).
+            expected = (
+                "Le débat s'ouvre : personne n'a encore pris la parole aujourd'hui, et la "
+                "nuit personne n'a rien vu. Réagis à ce que le matin a révélé (qui est mort "
+                "et son rôle, ou personne), puis lance la discussion : une question à un "
+                "joueur, une méthode pour trouver les loups, ou un appel à parler."
             )
-        elif not village_has_spoken and "witch_poison" in legal_action_types:
-            first_night_note = no_clue + (
-                "Empoisonner maintenant serait un tir à l'aveugle qui peut tuer un allié : "
-                "garde plutôt ta potion pour quand tu auras de vrais soupçons. "
+        else:
+            expected = (
+                "Chaque message doit faire avancer la partie : soupçon appuyé sur ce qui "
+                "s'est dit ou voté, question précise, défense ou proposition de vote. Si tu "
+                "n'as pas encore parlé aujourd'hui, réagis d'abord à ce que le matin a "
+                "révélé. Ne salue qu'une fois."
             )
+        return public + expected + wolf_warning
+
+    @staticmethod
+    def _spoke_today(context: dict) -> bool:
+        """Un joueur a-t-il parlé depuis le dernier lever du jour ?"""
+        log = context.get("main_room_log") or []
+        dawn = max(
+            (i for i, e in enumerate(log) if e.get("author") is None and "Le jour se lève" in (e.get("text") or "")),
+            default=-1,
+        )
+        return any(e.get("author") is not None for e in log[dawn + 1:])
+
+    def _instructions_line(self, context: dict, alive_players: list[dict]) -> str:
+        legal_action_types = context.get("legal_action_types", [])
+        example_id = alive_players[0]["id"] if alive_players else "ia_1"
+        example_pseudo = alive_players[0]["pseudo"] if alive_players else "Fatima"
         return (
-            f"Phase actuelle : {phase}. Actions autorisées : {legal_action_types}. "
-            + first_night_note
-            + f'IMPORTANT : le champ "target" doit être exactement un identifiant seul, '
+            f"Actions autorisées : {legal_action_types}. "
+            f'IMPORTANT : le champ "target" doit être exactement un identifiant seul, '
             f'par exemple "{example_id}" — jamais "{example_id} ({example_pseudo})", '
             "jamais le pseudo, jamais de parenthèses ni de ponctuation ajoutée. "
             'Dans "message", en revanche, désigne toujours les joueurs par leur pseudo, '
             "jamais par leur identifiant."
-            + day_warning
         )
 
     def _build_user_content(self, player_id: str, context: dict) -> str:
@@ -186,6 +231,7 @@ class AIActionProvider:
         lines.append(f"Joueurs vivants : {self._format_roster(alive_players)}.")
         lines += self._dead_lines(context)
         lines += self._wolf_target_lines(context, pseudo_lookup)
+        lines.append(self._scene_line(context, pseudo_lookup))
         lines.append(self._instructions_line(context, alive_players))
 
         return "\n".join(lines)

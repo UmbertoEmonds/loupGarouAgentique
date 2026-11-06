@@ -84,19 +84,19 @@ class ScriptedAIClient:
         player_id = self._player_id_for(system_prompt)
         alive_ids = self._alive_ids(user_content)
 
-        if "Phase actuelle : nuit_loups" in user_content:
+        if "dans l'antre des loups" in user_content:
             target = next(pid for pid in alive_ids if self.player_roles[pid] != Role.LOUP)
             return json.dumps({"message": None, "action": {"type": "night_kill_target", "target": target}})
 
-        if "Phase actuelle : nuit_sorciere" in user_content:
+        if "Tu décides sans personne" in user_content:
             if "witch_poison" in user_content:
                 self.saw_wolf_target_tonight_in_poison_call = "Cible des loups cette nuit :" in user_content
             return json.dumps({"message": None, "action": None})  # la sorcière décline les deux potions
 
-        if "Phase actuelle : jour_debat" in user_content:
+        if "débat public" in user_content:
             return json.dumps({"message": None, "action": None})  # passe, débat terminé rapidement
 
-        if "Phase actuelle : jour_vote" in user_content:
+        if "vote public" in user_content:
             target = next(pid for pid in alive_ids if pid != player_id)
             return json.dumps({"message": None, "action": {"type": "day_vote", "target": target}})
 
