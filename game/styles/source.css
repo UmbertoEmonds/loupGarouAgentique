@@ -97,6 +97,11 @@
   --inset: rgb(38 29 27 / .4);
 }
 
+/* Titre de l'antre des loups : magenta la nuit, rose clair le jour (le magenta
+   se perd sur les panneaux plus clairs). */
+.wolf-title { color: var(--color-eye); transition: color 1.2s ease; }
+.scene.day .wolf-title { color: #ffd0e4; }
+
 /* Message du joueur dans les salons */
 .msg-mine { background: rgb(125 21 17 / .6); }
 
