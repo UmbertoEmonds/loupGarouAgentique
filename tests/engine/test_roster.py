@@ -57,3 +57,21 @@ def test_new_game_draws_roles_and_pairings_from_two_independent_shuffles():
     roster.new_game("Umberto", rng=rng)
     assert sorted(rng.shuffle_lengths) == [5, 6]
     assert len(rng.shuffle_lengths) == 2
+
+
+def test_new_game_gives_the_human_the_chosen_role():
+    for role in (Role.LOUP, Role.SORCIERE, Role.VILLAGEOIS):
+        state = roster.new_game("Umberto", rng=random.Random(1), human_role=role)
+        assert state.players["human"].role == role
+
+
+def test_new_game_with_a_chosen_role_keeps_the_overall_role_counts():
+    for role in (Role.LOUP, Role.SORCIERE, Role.VILLAGEOIS):
+        state = roster.new_game("Umberto", rng=random.Random(2), human_role=role)
+        counts = Counter(p.role for p in state.players.values())
+        assert counts == {Role.LOUP: 2, Role.SORCIERE: 1, Role.VILLAGEOIS: 3}
+
+
+def test_new_game_without_a_chosen_role_is_still_random():
+    roles = {roster.new_game("Umberto", rng=random.Random(s)).players["human"].role for s in range(30)}
+    assert roles == {Role.LOUP, Role.SORCIERE, Role.VILLAGEOIS}

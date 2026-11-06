@@ -9,11 +9,20 @@ PERSONNALITES = ["mauvais_joueur", "stratege", "impatient", "paranoiaque", "mani
 ROLE_COUNTS = {Role.LOUP: 2, Role.SORCIERE: 1, Role.VILLAGEOIS: 3}
 
 
-def new_game(human_pseudo: str, rng: random.Random | None = None) -> GameState:
+def new_game(
+    human_pseudo: str,
+    rng: random.Random | None = None,
+    human_role: Role | None = None,
+) -> GameState:
+    """Crée la partie. `human_role` impose le rôle de l'humain (tiré au sort si None) ;
+    les rôles restants sont répartis au hasard entre les IA."""
     rng = rng or random.Random()
 
     roles = [role for role, count in ROLE_COUNTS.items() for _ in range(count)]
     rng.shuffle(roles)
+    if human_role is not None:
+        roles.remove(human_role)
+        roles.insert(0, human_role)
 
     pairings = list(zip(PRENOMS, PERSONNALITES))
     rng.shuffle(pairings)
