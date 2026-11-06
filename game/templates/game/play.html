@@ -8,6 +8,7 @@
     <h1 class="logo-text text-3xl">Loups-Garous</h1>
     <div class="flex flex-wrap items-center gap-2 text-sm">
       <span id="ai-stats" class="max-w-[22rem] truncate rounded-full bg-ink/60 px-3 py-1 tabular-nums text-parchment/80" title="Modèle d'IA utilisé et jetons consommés par la partie"></span>
+      <span id="ai-down" role="img" tabindex="0" class="hidden h-7 w-7 cursor-help items-center justify-center rounded-full bg-blood font-display text-base" aria-label="Les IA sont injoignables" title="Les IA sont injoignables (quota journalier atteint chez OpenRouter et Groq, clé invalide ou problème réseau). Elles passent leur tour ou votent au hasard ; la partie continue, mais sans vraie discussion.">!</span>
       <span id="phase" class="rounded-full border border-ember/60 bg-ink/60 px-3 py-1 font-display"></span>
       <span id="debate-timer" class="hidden rounded-full bg-ink/60 px-3 py-1 tabular-nums"></span>
       <span id="role" class="rounded-full bg-blood px-3 py-1 font-display"></span>
@@ -20,10 +21,6 @@
   <div role="note" class="rounded-lg border border-blood bg-black px-3 py-1 text-center text-sm">
     <span class="font-display text-blood-light">⚠️ Tous les autres joueurs sont des IA</span>
     <span class="text-cream/90">— tu es le seul humain de la partie.</span>
-  </div>
-
-  <div id="ai-down" role="alert" class="hidden rounded-lg border border-ember/60 bg-ink/80 px-3 py-2 text-center text-sm text-ember">
-    ⚠️ Les IA sont injoignables (quota journalier atteint chez OpenRouter et Groq, clé invalide ou problème réseau). Elles passent leur tour ou votent au hasard ; la partie continue, mais sans vraie discussion.
   </div>
 
   <div id="conn" class="hidden rounded-lg bg-blood-dark/80 px-3 py-2 text-center text-sm">Connexion perdue… reconnexion en cours.</div>

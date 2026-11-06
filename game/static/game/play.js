@@ -176,6 +176,7 @@
     $("scene").classList.toggle("night", s.is_night);
     $("scene").classList.toggle("day", !s.is_night);
     $("ai-down").classList.toggle("hidden", !s.ai_down);
+    $("ai-down").classList.toggle("flex", s.ai_down);
     $("phase").textContent = (s.is_night ? "🌙 " : "☀️ ") + s.phase_label + " · tour " + s.cycle;
     $("role").textContent = (ROLE_EMOJI[s.me.role] || "") + " Tu es " + s.me.role_label;
     renderPlayers(s);
