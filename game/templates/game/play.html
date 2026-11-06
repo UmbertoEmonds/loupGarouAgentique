@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}Partie — Les Loups-Garous{% endblock %}
 {% block body %}
-<div class="flex min-h-screen w-full flex-col gap-4 px-3 py-4 sm:px-6 lg:px-8">
+<div class="flex min-h-dvh w-full flex-col gap-3 px-3 py-3 sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-8">
 
   <header class="flex flex-wrap items-center justify-between gap-3">
     <h1 class="logo-text text-3xl">Loups-Garous</h1>
@@ -16,7 +16,7 @@
     </div>
   </header>
 
-  <div role="note" class="rounded-lg border border-blood bg-black px-3 py-2 text-center text-sm">
+  <div role="note" class="rounded-lg border border-blood bg-black px-3 py-1 text-center text-sm">
     <span class="font-display text-blood-light">⚠️ Tous les autres joueurs sont des IA</span>
     <span class="text-cream/90">— tu es le seul humain de la partie.</span>
   </div>
@@ -27,29 +27,29 @@
 
   <div id="conn" class="hidden rounded-lg bg-blood-dark/80 px-3 py-2 text-center text-sm">Connexion perdue… reconnexion en cours.</div>
 
-  <div class="grid flex-1 gap-4 lg:grid-cols-[18rem_1fr]">
-    <aside class="panel self-start p-3">
+  <div class="grid flex-1 gap-3 lg:min-h-0 lg:grid-cols-[18rem_1fr]">
+    <aside class="panel self-start p-3 lg:max-h-full lg:overflow-y-auto">
       <h2 class="mb-2 font-display text-lg text-ember">Le village</h2>
       <ul id="players" class="grid grid-cols-2 gap-2 lg:grid-cols-1"></ul>
       <div id="witch" class="inset mt-3 hidden rounded-lg p-2 text-sm"></div>
     </aside>
 
-    <main class="flex min-h-0 flex-col gap-4">
-      <section class="panel flex min-h-72 flex-[2] flex-col p-3">
+    <main class="flex min-h-0 flex-col gap-3">
+      <section class="panel flex min-h-48 flex-[2] flex-col p-3 lg:min-h-0">
         <h2 class="mb-2 font-display text-lg text-ember">Place du village</h2>
         <div id="main-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
 
-      <section id="wolf-room" class="panel hidden min-h-44 flex-1 flex-col border-eye/40 p-3">
+      <section id="wolf-room" class="panel hidden min-h-32 flex-1 flex-col border-eye/40 p-3 lg:min-h-0">
         <h2 class="mb-2 font-display text-lg text-eye">Antre des loups <span id="wolf-mates" class="text-sm text-parchment/70"></span></h2>
         <div id="wolf-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
 
-      <section id="action" class="panel p-4">
+      <section id="action" class="panel shrink-0 p-3">
         <div id="status" class="text-parchment/80"></div>
         <form id="form" class="hidden space-y-3">
           <p id="prompt" class="font-display text-lg"></p>
-          <div id="targets" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+          <div id="targets" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"></div>
           <textarea id="message" rows="2" maxlength="500" class="field hidden" placeholder="Ton message…"></textarea>
           <div class="flex flex-wrap items-center gap-2" id="buttons"></div>
           <div class="h-1.5 overflow-hidden rounded-full bg-ink"><div id="bar" class="h-full bg-ember transition-[width] duration-200"></div></div>

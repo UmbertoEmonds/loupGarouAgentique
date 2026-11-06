@@ -113,6 +113,12 @@ def build_response(pending: dict, payload: dict) -> tuple[dict | None, str | Non
     if kind == "witch_poison" and not payload.get("accept"):
         return {"message": None, "action": None}, None
 
+    if kind == "wolf_kill" and target is None:
+        # Les loups peuvent discuter avant de désigner une victime : un message seul est valide.
+        if not message:
+            return None, "Écris un message ou choisis une victime."
+        return {"message": message, "action": None}, None
+
     if target not in allowed:
         return None, "Choisis une cible dans la liste."
     action_type = {"wolf_kill": "night_kill_target", "witch_poison": "witch_poison", "vote": "day_vote"}[kind]

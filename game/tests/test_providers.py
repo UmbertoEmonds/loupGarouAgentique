@@ -22,6 +22,24 @@ class BuildResponseTests(SimpleTestCase):
         self.assertIsNone(resp)
         self.assertTrue(err)
 
+    def test_wolf_can_talk_without_choosing_a_victim_yet(self):
+        pending = {"kind": "wolf_kill", "allow_message": True, "targets": [{"id": "ia_1", "pseudo": "A"}]}
+        resp, err = build_response(pending, {"message": "on prend qui ?"})
+        self.assertIsNone(err)
+        self.assertEqual(resp, {"message": "on prend qui ?", "action": None})
+
+    def test_wolf_needs_a_target_or_a_message(self):
+        pending = {"kind": "wolf_kill", "allow_message": True, "targets": [{"id": "ia_1", "pseudo": "A"}]}
+        resp, err = build_response(pending, {"message": "  "})
+        self.assertIsNone(resp)
+        self.assertTrue(err)
+
+    def test_wolf_target_outside_list_is_still_refused(self):
+        pending = {"kind": "wolf_kill", "allow_message": True, "targets": [{"id": "ia_1", "pseudo": "A"}]}
+        resp, err = build_response(pending, {"target": "ia_9", "message": "x"})
+        self.assertIsNone(resp)
+        self.assertTrue(err)
+
     def test_debate_message_is_cleaned_and_capped(self):
         pending = {"kind": "debate", "allow_message": True, "targets": []}
         resp, _ = build_response(pending, {"message": "  salut   à tous  " + "x" * 900})

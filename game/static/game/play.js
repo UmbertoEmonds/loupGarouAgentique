@@ -124,6 +124,7 @@
       }
       var ok = mkBtn(p.kind === "vote" ? "Voter" : p.kind === "wolf_kill" ? "Dévorer" : "Empoisonner", "btn-primary", confirm);
       ok.disabled = true;
+      if (p.kind === "wolf_kill") mkBtn("Discuter sans voter", "btn-ghost", () => msg.value.trim() ? answer({}) : showError("Écris un message pour discuter."));
       if (p.kind === "witch_poison") mkBtn("Ne rien faire", "btn-ghost", () => answer({ accept: false }));
     } else if (p.kind === "witch_heal") {
       const yes = mkBtn("Sauver la victime", "btn-primary", () => answer({ accept: true }));
