@@ -22,3 +22,9 @@ def test_pick_vote_fallback_prefers_a_player_already_suspected():
 def test_pick_vote_fallback_is_fully_random_when_nobody_has_voted_yet():
     result = pick_vote_fallback({}, ["ia_1", "ia_2", "ia_3"], rng=random.Random(1))
     assert result in {"ia_1", "ia_2", "ia_3"}
+
+
+def test_pick_vote_fallback_never_makes_a_player_vote_against_themselves():
+    for seed in range(30):
+        assert pick_vote_fallback({}, ["ia_1", "ia_2"], rng=random.Random(seed), voter_id="ia_1") == "ia_2"
+        assert pick_vote_fallback({"ia_2": "ia_1"}, ["ia_1", "ia_2"], rng=random.Random(seed), voter_id="ia_1") == "ia_2"

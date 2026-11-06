@@ -62,7 +62,7 @@
     const ul = $("players");
     ul.replaceChildren();
     for (const p of s.players) {
-      const li = el("li", "flex items-center gap-2 rounded-lg px-2 py-1.5 " +
+      const li = el("li", "flex items-center gap-2 rounded-lg px-2 py-1 " +
         (p.alive ? "inset" : "bg-black/50 opacity-60"));
       const badge = el("span", "text-xl", p.alive ? (p.role ? ROLE_EMOJI[p.role] : "🙂") : "💀");
       const info = el("div", "min-w-0 leading-tight");
@@ -80,15 +80,18 @@
     if (s.phase === "terminee") text = "La partie est terminée.";
     else if (!s.me.alive) text = "Tu es mort : tu observes la fin de la partie.";
     else if (s.thinking) text = `${s.thinking} réfléchit…`;
-    else if (s.is_night) text = "Le village dort… la nuit suit son cours.";
+    else if (s.is_night) text = ""; // l'icône du dernier évènement dit déjà que la nuit tombe
     else text = "En attente des autres joueurs…";
     status.textContent = text;
   }
 
   function renderForm(p) {
     const form = $("form");
-    if (!p) { pendingId = null; form.classList.add("hidden"); $("status").classList.remove("hidden"); return; }
-    $("status").classList.add("hidden");
+    // Le panneau d'action n'existe que lorsqu'on attend quelque chose du joueur ;
+    // sinon le statut (« X réfléchit… ») s'affiche sous le dernier évènement.
+    $("action").classList.toggle("hidden", !p);
+    $("status").classList.toggle("hidden", !!p);
+    if (!p) { pendingId = null; form.classList.add("hidden"); return; }
     form.classList.remove("hidden");
     if (pendingId === p.id) return; // formulaire déjà construit : on ne touche pas à la saisie
     pendingId = p.id;
@@ -144,12 +147,37 @@
     e.classList.remove("hidden");
   }
 
+  // Dernier évènement de narration, affiché sous « Le village » : icône + légende.
+  function renderLastEvent(log) {
+    const last = [...log].reverse().find((e) => e.author === null);
+    if (!last) { $("last-event-icon").textContent = ""; $("last-event-text").textContent = ""; return; }
+    const m = last.text.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+    let icon = m ? m[1] : "📜", text = m ? m[2] : last.text;
+    if (!m) {
+      if (/éliminé/.test(text)) icon = "🗳️";
+      else if (/mort/.test(text) && !/Personne/.test(text)) icon = "💀";
+      else if (/Personne/.test(text)) icon = "🕊️";
+    }
+    $("last-event-icon").textContent = icon;
+    $("last-event-text").textContent = text;
+  }
+
+  function renderAiStats(stats) {
+    const chip = $("ai-stats");
+    const tokens = stats.total_tokens.toLocaleString("fr-FR");
+    chip.textContent = `🤖 ${stats.model || "en attente d'un appel"} · ${tokens} jeton${stats.total_tokens > 1 ? "s" : ""}`;
+    chip.title = `Modèle d'IA utilisé · ${stats.calls} appel${stats.calls > 1 ? "s" : ""} · ${tokens} jetons consommés par la partie`;
+  }
+
   function render() {
     const s = state;
     if (!s || !s.active) { location.href = "/"; return; }
+    renderAiStats(s.ai_stats);
+    renderLastEvent(s.main_log);
     $("scene").classList.toggle("night", s.is_night);
     $("scene").classList.toggle("day", !s.is_night);
     $("ai-down").classList.toggle("hidden", !s.ai_down);
+    $("ai-down").classList.toggle("flex", s.ai_down);
     $("phase").textContent = (s.is_night ? "🌙 " : "☀️ ") + s.phase_label + " · tour " + s.cycle;
     $("role").textContent = (ROLE_EMOJI[s.me.role] || "") + " Tu es " + s.me.role_label;
     renderPlayers(s);

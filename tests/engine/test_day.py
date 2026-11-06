@@ -53,27 +53,38 @@ def test_debate_stops_early_on_one_full_round_of_passes():
     assert state.main_room_log == []  # arrêté après le tour 1, jamais atteint le temps écoulé
 
 
-def test_collect_votes_records_a_valid_vote_including_self_vote():
+def test_collect_votes_records_valid_votes():
     state = make_state_with_alive("ia_1", "ia_2")
     provider = ScriptedProvider({
-        "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}],
+        "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_2"}}],
         "ia_2": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}],
     })
     votes, fallback_used = collect_votes(state, provider, rng=random.Random(1))
-    assert votes == {"ia_1": "ia_1", "ia_2": "ia_1"}
+    assert votes == {"ia_1": "ia_2", "ia_2": "ia_1"}
     assert fallback_used == []
+
+
+def test_a_self_vote_is_refused_and_replaced_by_a_vote_against_someone_else():
+    state = make_state_with_alive("ia_1", "ia_2")
+    provider = ScriptedProvider({
+        "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}] * 2,
+        "ia_2": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}],
+    })
+    votes, fallback_used = collect_votes(state, provider, rng=random.Random(1))
+    assert fallback_used == ["ia_1"]
+    assert votes["ia_1"] == "ia_2"
 
 
 def test_collect_votes_falls_back_after_retry_exhausted():
     state = make_state_with_alive("ia_1", "ia_2", "ia_3")
     provider = ScriptedProvider({
         "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_2"}}],
-        "ia_2": [{"message": None, "action": {"type": "day_vote", "target": "ia_2"}}],
+        "ia_2": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}],
         "ia_3": [None, None],
     })
     votes, fallback_used = collect_votes(state, provider, rng=random.Random(1))
     assert fallback_used == ["ia_3"]
-    assert votes["ia_3"] == "ia_2"  # ia_2 a déjà des votes, donc le pool des "suspectés" le choisit
+    assert votes["ia_3"] in {"ia_1", "ia_2"}  # un joueur déjà soupçonné, jamais lui-même
 
 
 def test_collect_votes_fallback_is_random_when_nobody_voted_yet():
@@ -91,7 +102,7 @@ def test_a_mismatched_action_type_during_voting_falls_back_instead_of_being_rein
     # légale.
     state = make_state_with_alive("ia_1", "ia_2")
     provider = ScriptedProvider({
-        "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_1"}}],
+        "ia_1": [{"message": None, "action": {"type": "day_vote", "target": "ia_2"}}],
         "ia_2": [{"message": None, "action": {"type": "night_kill_target", "target": "ia_1"}}] * 2,
     })
     votes, fallback_used = collect_votes(state, provider, rng=random.Random(1))

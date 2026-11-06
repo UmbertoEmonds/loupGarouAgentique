@@ -6,6 +6,7 @@ from django.test import SimpleTestCase
 
 from agents.client import FallbackClient, GroqClient, OpenRouterClient
 from engine.engine import GameEngine
+from engine.models import Role
 from game.providers import HumanProvider, RouterProvider, build_ai_provider, build_response
 
 VOTE = {"kind": "vote", "allow_message": False, "targets": [{"id": "ia_1", "pseudo": "A"}]}
@@ -125,6 +126,47 @@ class HumanProviderTests(SimpleTestCase):
 class _StubAI:
     def get_action(self, player_id, context):
         return {"message": None, "action": None}
+
+
+class _RecordingHuman:
+    def __init__(self):
+        self.keys = []
+
+    def ask(self, key, pending):
+        self.keys.append(key)
+        return None  # comme un délai dépassé
+
+
+class HumanTurnKeyTests(SimpleTestCase):
+    """Un délai dépassé ne doit faire sauter que la relance immédiate du vote,
+    jamais les tours suivants du débat ou de la concertation des loups."""
+
+    def _router(self, role):
+        engine = GameEngine(rng=random.Random(1))
+        engine.start("Umberto", role)
+        human = _RecordingHuman()
+        return RouterProvider(engine, _StubAI(), human, threading.Event()), human
+
+    def test_each_debate_turn_gets_its_own_key(self):
+        router, human = self._router(Role.VILLAGEOIS)
+        for _ in range(2):
+            router.get_action("human", {"phase": "jour_debat", "alive_players": [], "legal_action_types": []})
+        self.assertNotEqual(human.keys[0], human.keys[1])
+
+    def test_each_wolf_round_gets_its_own_key(self):
+        router, human = self._router(Role.LOUP)
+        ctx = {"phase": "nuit_loups", "alive_players": [], "known_wolf_ids": [],
+               "legal_action_types": ["night_kill_target"]}
+        router.get_action("human", ctx)
+        router.get_action("human", ctx)
+        self.assertNotEqual(human.keys[0], human.keys[1])
+
+    def test_the_vote_retry_shares_the_key_so_it_is_skipped(self):
+        router, human = self._router(Role.VILLAGEOIS)
+        ctx = {"phase": "jour_vote", "alive_players": [], "legal_action_types": ["day_vote"]}
+        router.get_action("human", ctx)
+        router.get_action("human", ctx)
+        self.assertEqual(human.keys[0], human.keys[1])
 
 
 class RouterProviderTests(SimpleTestCase):

@@ -16,6 +16,7 @@
 
   <section class="panel w-full p-6 text-left">
     {% if error == "pseudo" %}<p class="mb-3 rounded-lg bg-blood-dark/70 px-3 py-2 text-sm">Choisis un pseudo pour jouer.</p>{% endif %}
+    {% if error == "pseudo-reserve" %}<p class="mb-3 rounded-lg bg-blood-dark/70 px-3 py-2 text-sm">Ce pseudo est déjà pris par un personnage du jeu, choisis-en un autre.</p>{% endif %}
     {% if busy %}
       <p class="mb-1 font-display text-xl text-ember">Partie déjà en cours</p>
       <p class="text-parchment/80">Une partie est en cours sur ce serveur (une seule partie à la fois). Réessaie dans quelques minutes.</p>

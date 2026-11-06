@@ -7,6 +7,8 @@
   <header class="flex flex-wrap items-center justify-between gap-3">
     <h1 class="logo-text text-3xl">Loups-Garous</h1>
     <div class="flex flex-wrap items-center gap-2 text-sm">
+      <span id="ai-stats" class="max-w-[22rem] truncate rounded-full bg-ink/60 px-3 py-1 tabular-nums text-parchment/80" title="Modèle d'IA utilisé et jetons consommés par la partie"></span>
+      <span id="ai-down" role="img" tabindex="0" class="hidden h-7 w-7 cursor-help items-center justify-center rounded-full bg-blood font-display text-base" aria-label="Les IA sont injoignables" title="Les IA sont injoignables (quota journalier atteint chez OpenRouter et Groq, clé invalide ou problème réseau). Elles passent leur tour ou votent au hasard ; la partie continue, mais sans vraie discussion.">!</span>
       <span id="phase" class="rounded-full border border-ember/60 bg-ink/60 px-3 py-1 font-display"></span>
       <span id="debate-timer" class="hidden rounded-full bg-ink/60 px-3 py-1 tabular-nums"></span>
       <span id="role" class="rounded-full bg-blood px-3 py-1 font-display"></span>
@@ -21,34 +23,38 @@
     <span class="text-cream/90">— tu es le seul humain de la partie.</span>
   </div>
 
-  <div id="ai-down" role="alert" class="hidden rounded-lg border border-ember/60 bg-ink/80 px-3 py-2 text-center text-sm text-ember">
-    ⚠️ Les IA sont injoignables (quota journalier atteint chez OpenRouter et Groq, clé invalide ou problème réseau). Elles passent leur tour ou votent au hasard ; la partie continue, mais sans vraie discussion.
-  </div>
-
   <div id="conn" class="hidden rounded-lg bg-blood-dark/80 px-3 py-2 text-center text-sm">Connexion perdue… reconnexion en cours.</div>
 
   <div class="grid flex-1 gap-3 lg:min-h-0 lg:grid-cols-[18rem_1fr]">
-    <aside class="panel self-start p-3 lg:max-h-full lg:overflow-y-auto">
+    <div class="flex min-h-0 flex-col gap-3">
+    <aside class="panel shrink-0 p-3 lg:max-h-[60%] lg:overflow-y-auto">
       <h2 class="mb-2 font-display text-lg text-ember">Le village</h2>
       <ul id="players" class="grid grid-cols-2 gap-2 lg:grid-cols-1"></ul>
       <div id="witch" class="inset mt-3 hidden rounded-lg p-2 text-sm"></div>
     </aside>
+      <section id="last-event" class="panel flex min-h-24 flex-1 flex-col items-center justify-center gap-2 p-4 text-center" aria-live="polite">
+        <span id="last-event-icon" class="text-6xl" aria-hidden="true"></span>
+        <span id="last-event-text" class="text-base leading-snug text-parchment/90"></span>
+        <span id="status" class="mt-2 text-sm italic text-parchment/70 empty:hidden"></span>
+      </section>
+    </div>
 
     <main class="flex min-h-0 flex-col gap-3">
-      <section class="panel flex min-h-48 flex-[2] flex-col p-3 lg:min-h-0">
-        <h2 class="mb-2 font-display text-lg text-ember">Place du village</h2>
+     <div class="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row">
+      <section class="panel flex min-h-48 flex-[3] flex-col p-3 lg:min-h-0">
+        <h2 class="mb-1 font-display text-lg text-ember">Place du village</h2>
         <div id="main-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
 
-      <section id="wolf-room" class="panel hidden min-h-32 flex-1 flex-col border-eye/40 p-3 lg:min-h-0">
-        <h2 class="mb-2 font-display text-lg text-eye">Antre des loups <span id="wolf-mates" class="text-sm text-parchment/70"></span></h2>
+      <section id="wolf-room" class="panel hidden min-h-32 flex-[2] flex-col border-eye/40 p-3 lg:min-h-0">
+        <h2 class="mb-1 font-display text-lg wolf-title">Antre des loups <span id="wolf-mates" class="text-sm text-parchment/70"></span></h2>
         <div id="wolf-log" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1" aria-live="polite"></div>
       </section>
+     </div>
 
-      <section id="action" class="panel shrink-0 p-3">
-        <div id="status" class="text-parchment/80"></div>
-        <form id="form" class="hidden space-y-3">
-          <p id="prompt" class="font-display text-lg"></p>
+      <section id="action" class="panel hidden shrink-0 p-3">
+        <form id="form" class="hidden space-y-2">
+          <p id="prompt" class="font-display text-base"></p>
           <div id="targets" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"></div>
           <textarea id="message" rows="2" maxlength="500" class="field hidden" placeholder="Ton message…"></textarea>
           <div class="flex flex-wrap items-center gap-2" id="buttons"></div>

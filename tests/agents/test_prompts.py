@@ -31,3 +31,21 @@ def test_general_block_states_the_json_response_contract():
 
 def test_general_block_forbids_denying_being_an_ai():
     assert "intelligence artificielle" in PROMPT_GENERAL_TEMPLATE
+
+
+def test_the_human_is_not_presented_as_an_opponent():
+    # Un loup IA peut avoir l'humain pour allié : le prompt ne doit pas l'opposer d'office.
+    assert "contre un joueur humain" not in PROMPT_GENERAL_TEMPLATE
+    assert "allié" in PROMPT_GENERAL_TEMPLATE
+
+
+def test_impulsive_personalities_never_reveal_their_role():
+    for slug in ("mauvais_joueur", "impatient", "paranoiaque"):
+        fragment = PERSONALITY_FRAGMENTS[slug]
+        assert "tu peux révéler ton rôle" not in fragment, slug
+        assert "tu ne révèles jamais ton rôle" in fragment, slug
+
+
+def test_calculated_reveals_remain_possible_for_strategic_personalities():
+    for slug in ("stratege", "manipulateur"):
+        assert "tu peux révéler ton rôle réel" in PERSONALITY_FRAGMENTS[slug], slug

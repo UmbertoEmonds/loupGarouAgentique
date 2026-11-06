@@ -51,21 +51,24 @@ def test_witch_cannot_heal_herself_even_if_she_is_the_victim():
         validate_action(state, "ia_1", ActionType.WITCH_HEAL, "ia_1")
 
 
-def test_witch_poison_may_target_anyone_including_herself():
+def test_witch_poison_may_target_anyone_but_herself():
     state = make_state({"ia_1": Role.SORCIERE, "ia_2": Role.VILLAGEOIS}, phase=Phase.NUIT_SORCIERE)
-    validate_action(state, "ia_1", ActionType.WITCH_POISON, "ia_1")  # ne lève pas d'exception
     validate_action(state, "ia_1", ActionType.WITCH_POISON, "ia_2")  # ne lève pas d'exception
+    with pytest.raises(ActionInvalid):
+        validate_action(state, "ia_1", ActionType.WITCH_POISON, "ia_1")
+
+
+def test_nobody_can_vote_against_themselves():
+    state = make_state({"ia_1": Role.VILLAGEOIS, "ia_2": Role.LOUP}, phase=Phase.JOUR_VOTE)
+    validate_action(state, "ia_1", ActionType.DAY_VOTE, "ia_2")  # ne lève pas d'exception
+    with pytest.raises(ActionInvalid):
+        validate_action(state, "ia_1", ActionType.DAY_VOTE, "ia_1")
 
 
 def test_declining_a_witch_potion_is_always_legal():
     state = make_state({"ia_1": Role.SORCIERE}, phase=Phase.NUIT_SORCIERE)
     validate_action(state, "ia_1", ActionType.WITCH_HEAL, None)
     validate_action(state, "ia_1", ActionType.WITCH_POISON, None)
-
-
-def test_day_vote_self_vote_is_allowed():
-    state = make_state({"ia_1": Role.VILLAGEOIS}, phase=Phase.JOUR_VOTE)
-    validate_action(state, "ia_1", ActionType.DAY_VOTE, "ia_1")  # ne lève pas d'exception
 
 
 def test_day_vote_target_must_be_alive():

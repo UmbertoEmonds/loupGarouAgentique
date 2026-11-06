@@ -179,3 +179,28 @@ def test_a_failing_on_usage_callback_never_breaks_the_call():
     session = FakeSession([ok_response("ok")])
     client = OpenRouterClient(models=["m"], api_key="k", session=session, on_usage=boom)
     assert client.complete("sys", "user") == "ok"
+
+def test_complete_reports_the_model_and_usage_to_on_call():
+    usage = {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10}
+    payload = {"model": "vendor/real-model", "choices": [{"message": {"content": "ok"}}], "usage": usage}
+    seen = []
+    session = FakeSession([FakeResponse(200, payload)])
+    client = OpenRouterClient(models=["requested"], api_key="k", session=session,
+                              on_call=lambda model, u: seen.append((model, u)))
+    client.complete("sys", "user")
+    assert seen == [("vendor/real-model", usage)]
+
+def test_on_call_falls_back_to_the_requested_model_name():
+    seen = []
+    session = FakeSession([ok_response("ok")])
+    client = OpenRouterClient(models=["requested"], api_key="k", session=session,
+                              on_call=lambda model, u: seen.append(model))
+    client.complete("sys", "user")
+    assert seen == ["requested"]
+
+def test_a_failing_on_call_callback_never_breaks_the_call():
+    def boom(model, usage):
+        raise RuntimeError
+    session = FakeSession([ok_response("ok")])
+    client = OpenRouterClient(models=["m"], api_key="k", session=session, on_call=boom)
+    assert client.complete("sys", "user") == "ok"

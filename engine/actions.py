@@ -59,6 +59,8 @@ def validate_action(
     if not victim.alive:
         raise ActionInvalid(f"target {target!r} is dead")
 
+    if action_type in (ActionType.DAY_VOTE, ActionType.WITCH_POISON) and target == player_id:
+        raise ActionInvalid(f"{action_type.value} cannot target oneself")
     if action_type == ActionType.NIGHT_KILL_TARGET and victim.role == Role.LOUP:
         raise ActionInvalid("wolves cannot target other wolves")
     if action_type == ActionType.WITCH_HEAL:

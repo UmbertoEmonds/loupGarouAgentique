@@ -2,7 +2,7 @@ import time
 
 from django.test import SimpleTestCase, override_settings
 
-from engine.models import Phase
+from engine.models import Phase, Role
 from game.session import session
 
 
@@ -33,16 +33,20 @@ class SessionTests(SimpleTestCase):
         # Fin de partie : tous les rôles sont révélés.
         self.assertTrue(all(p["role"] for p in snap["players"]))
 
+    @override_settings(HUMAN_TIMEOUT_S=30)
     def test_snapshot_hides_other_roles_and_wolf_room(self):
-        session.start("owner", "Alice")
-        snap = session.snapshot()
-        others = [p for p in snap["players"] if not p["is_me"] and p["alive"]]
-        if snap["me"]["role"] == "loup":
-            # Un loup connaît déjà ses alliés : seuls les autres loups sont révélés.
-            self.assertTrue(all((p["role"] == "loup") == (p["pseudo"] in snap["wolf_mates"]) for p in others))
-        else:
-            self.assertTrue(all(p["role"] is None for p in others))
-            self.assertIsNone(snap["wolf_log"])
+        # Loup et sorcière sont sollicités dès la première nuit : la partie les attend,
+        # donc l'état lu est bien celui d'une partie en cours (rôles pas encore révélés).
+        for role in (Role.LOUP, Role.SORCIERE):
+            session.start("owner", "Alice", role)
+            snap = session.snapshot()
+            others = [p for p in snap["players"] if not p["is_me"] and p["alive"]]
+            if role == Role.LOUP:
+                # Un loup connaît déjà ses alliés : seuls les autres loups sont révélés.
+                self.assertTrue(all((p["role"] == "loup") == (p["pseudo"] in snap["wolf_mates"]) for p in others))
+            else:
+                self.assertTrue(all(p["role"] is None for p in others))
+                self.assertIsNone(snap["wolf_log"])
 
     def test_second_start_refused_while_running_then_allowed_after_abandon(self):
         self.assertTrue(session.start("owner", "Alice"))
@@ -103,3 +107,44 @@ class AbandonTests(SimpleTestCase):
         session.abandon()
         self.assertFalse(session.running)
         self.assertIsNone(session.thinking)
+
+
+@override_settings(FAKE_AI=True, FAKE_AI_DELAY_S=0, PHASE_PAUSE_S=0, HUMAN_TIMEOUT_S=0.05, DEBATE_DURATION_S=5)
+class AIStatsTests(SimpleTestCase):
+    def setUp(self):
+        session.abandon()
+        session.reset()
+
+    def tearDown(self):
+        session.abandon()
+
+    def test_stats_start_empty_in_the_snapshot(self):
+        session.start("owner", "Alice")
+        stats = session.snapshot()["ai_stats"]
+        self.assertEqual(stats["total_tokens"], 0)
+        self.assertEqual(stats["calls"], 0)
+
+    def test_each_call_updates_the_model_and_cumulates_tokens(self):
+        session.start("owner", "Alice")
+        gen = session._gen
+        session._record_ai_call(gen, "vendor/model-a", {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10})
+        session._record_ai_call(gen, "vendor/model-b", {"prompt_tokens": 4, "completion_tokens": 1})
+        stats = session._public_ai_stats(Phase.JOUR_DEBAT)
+        self.assertEqual(stats, {"model": "vendor/model-b", "calls": 2, "total_tokens": 15})
+
+    def test_calls_from_an_older_game_are_ignored(self):
+        session.start("owner", "Alice")
+        old_gen = session._gen
+        session.start("owner", "Alice")
+        session._record_ai_call(old_gen, "old", {"total_tokens": 99})
+        self.assertEqual(session.snapshot()["ai_stats"]["total_tokens"], 0)
+
+    def test_stats_are_frozen_at_night_so_they_reveal_nothing(self):
+        session.start("owner", "Alice")
+        gen = session._gen
+        session._record_ai_call(gen, "jour", {"total_tokens": 10})
+        self.assertEqual(session._public_ai_stats(Phase.JOUR_DEBAT)["total_tokens"], 10)
+        session._record_ai_call(gen, "nuit", {"total_tokens": 5})
+        self.assertEqual(session._public_ai_stats(Phase.NUIT_SORCIERE),
+                         {"model": "jour", "calls": 1, "total_tokens": 10})
+        self.assertEqual(session._public_ai_stats(Phase.JOUR_DEBAT)["total_tokens"], 15)

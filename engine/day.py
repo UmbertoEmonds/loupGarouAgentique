@@ -65,7 +65,7 @@ def collect_votes(
     reste obligatoire dans tous les cas.
     """
     # Chaque joueur encore en vie vote publiquement pour éliminer un
-    # suspect ; le vote est obligatoire, même pour soi-même.
+    # autre joueur ; le vote est obligatoire, jamais contre soi-même.
     if rng is None:
         rng = random.Random()
 
@@ -82,7 +82,7 @@ def collect_votes(
         if target is None:
             # Pas de vote exploitable : le moteur en attribue un d'office,
             # de préférence sur un joueur déjà soupçonné ce tour-ci.
-            target = pick_vote_fallback(votes, alive_ids, rng)
+            target = pick_vote_fallback(votes, alive_ids, rng, voter_id=player_id)
             fallback_used.append(player_id)
 
         votes[player_id] = target
