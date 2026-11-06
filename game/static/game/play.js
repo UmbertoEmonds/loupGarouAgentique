@@ -87,8 +87,11 @@
 
   function renderForm(p) {
     const form = $("form");
-    if (!p) { pendingId = null; form.classList.add("hidden"); $("status").classList.remove("hidden"); return; }
-    $("status").classList.add("hidden");
+    // Le panneau d'action n'existe que lorsqu'on attend quelque chose du joueur ;
+    // sinon le statut (« X réfléchit… ») s'affiche sous le dernier évènement.
+    $("action").classList.toggle("hidden", !p);
+    $("status").classList.toggle("hidden", !!p);
+    if (!p) { pendingId = null; form.classList.add("hidden"); return; }
     form.classList.remove("hidden");
     if (pendingId === p.id) return; // formulaire déjà construit : on ne touche pas à la saisie
     pendingId = p.id;
@@ -146,9 +149,8 @@
 
   // Dernier évènement de narration, affiché sous « Le village » : icône + légende.
   function renderLastEvent(log) {
-    const box = $("last-event");
     const last = [...log].reverse().find((e) => e.author === null);
-    if (!last) { box.classList.add("hidden"); box.classList.remove("flex"); return; }
+    if (!last) { $("last-event-icon").textContent = ""; $("last-event-text").textContent = ""; return; }
     const m = last.text.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
     let icon = m ? m[1] : "📜", text = m ? m[2] : last.text;
     if (!m) {
@@ -158,7 +160,6 @@
     }
     $("last-event-icon").textContent = icon;
     $("last-event-text").textContent = text;
-    box.classList.remove("hidden"); box.classList.add("flex");
   }
 
   function renderAiStats(stats) {

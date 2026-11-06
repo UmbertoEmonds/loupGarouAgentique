@@ -32,9 +32,10 @@
       <ul id="players" class="grid grid-cols-2 gap-2 lg:grid-cols-1"></ul>
       <div id="witch" class="inset mt-3 hidden rounded-lg p-2 text-sm"></div>
     </aside>
-      <section id="last-event" class="panel hidden min-h-24 flex-1 flex-col items-center justify-center gap-2 p-4 text-center" aria-live="polite">
+      <section id="last-event" class="panel flex min-h-24 flex-1 flex-col items-center justify-center gap-2 p-4 text-center" aria-live="polite">
         <span id="last-event-icon" class="text-6xl" aria-hidden="true"></span>
         <span id="last-event-text" class="text-base leading-snug text-parchment/90"></span>
+        <span id="status" class="mt-2 text-sm italic text-parchment/70"></span>
       </section>
     </div>
 
@@ -51,8 +52,7 @@
       </section>
      </div>
 
-      <section id="action" class="panel shrink-0 p-3">
-        <div id="status" class="text-parchment/80"></div>
+      <section id="action" class="panel hidden shrink-0 p-3">
         <form id="form" class="hidden space-y-2">
           <p id="prompt" class="font-display text-base"></p>
           <div id="targets" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"></div>
