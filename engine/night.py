@@ -40,8 +40,12 @@ def resolve_wolf_phase(
 
     last_proposal: dict[str, str] = {}
 
-    for _round in range(MAX_WOLF_ROUNDS):
+    for round_number in range(1, MAX_WOLF_ROUNDS + 1):
         round_proposals: dict[str, str] = {}
+        state.wolf_room_log.append({
+            "author": None,
+            "text": f"Tour de concertation {round_number}/{MAX_WOLF_ROUNDS}.",
+        })
 
         for wolf in wolves:
             context = build_context(state, wolf, [ActionType.NIGHT_KILL_TARGET.value])
@@ -71,7 +75,13 @@ def resolve_wolf_phase(
         if everyone_proposed and all_agree:
             return next(iter(round_proposals.values()))
 
-    return pick_wolf_tiebreak(list(last_proposal.values()), alive_non_wolf_ids, rng)
+    target = pick_wolf_tiebreak(list(last_proposal.values()), alive_non_wolf_ids, rng)
+    state.wolf_room_log.append({
+        "author": None,
+        "text": f"Pas d'accord après {MAX_WOLF_ROUNDS} tours : le sort désigne "
+                f"{state.players[target].pseudo}.",
+    })
+    return target
 
 
 def _ask_witch(
