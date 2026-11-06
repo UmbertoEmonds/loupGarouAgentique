@@ -39,6 +39,9 @@ def resolve_wolf_phase(
     ]
 
     last_proposal: dict[str, str] = {}
+    # Sépare les nuits dans l'antre : sans repère, un loup confondait les
+    # propositions de la nuit précédente avec celles de la nuit en cours.
+    state.wolf_room_log.append({"author": None, "text": f"🌙 Nuit {state.cycle}"})
 
     for round_number in range(1, MAX_WOLF_ROUNDS + 1):
         round_proposals: dict[str, str] = {}

@@ -218,3 +218,18 @@ def test_dead_players_and_their_roles_are_rendered():
     context = {**_day_context("villageois"), "dead_players": [{"id": "ia_2", "pseudo": "Sarah", "role": "loup"}]}
     provider.get_action("ia_1", context)
     assert "Joueurs morts (rôle révélé) : Sarah (loup)." in client.calls[0]["user_content"]
+
+
+def test_own_messages_are_marked_so_the_ai_does_not_repeat_or_lose_itself():
+    client = FakeClient(['{"message": null, "action": null}'])
+    provider = AIActionProvider(client, {"ia_1": "Sarah"}, {"ia_1": Role.LOUP}, {"ia_1": "impatient"})
+    context = {
+        "phase": "nuit_loups", "self_role": "loup",
+        "alive_players": [{"id": "ia_1", "pseudo": "Sarah"}, {"id": "human", "pseudo": "Capucine"}],
+        "main_room_log": [], "known_wolf_ids": ["human"],
+        "wolf_room_log": [{"author": "ia_1", "text": "Baptiste"}, {"author": "human", "text": "ok"}],
+    }
+    provider.get_action("ia_1", context)
+    content = client.calls[0]["user_content"]
+    assert '<message auteur="Sarah (toi)">Baptiste</message>' in content
+    assert '<message auteur="Capucine">ok</message>' in content

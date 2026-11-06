@@ -163,3 +163,11 @@ def test_the_random_tiebreak_is_announced_in_the_wolf_room():
         "author": None,
         "text": f"Pas d'accord après 3 tours : le sort désigne {target}.",
     }
+
+
+def test_each_night_is_announced_in_the_wolf_room():
+    state = make_state_with_wolves("ia_1", "ia_2", others=["ia_3", "ia_4"])
+    state.cycle = 2
+    provider = ScriptedWolfProvider({"ia_1": [action("ia_3")], "ia_2": [action("ia_3")]})
+    resolve_wolf_phase(state, provider, rng=random.Random(1))
+    assert state.wolf_room_log[0] == {"author": None, "text": "🌙 Nuit 2"}
