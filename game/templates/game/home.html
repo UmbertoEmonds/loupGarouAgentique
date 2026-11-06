@@ -4,8 +4,7 @@
 <div class="grid w-full max-w-6xl items-center gap-6 lg:grid-cols-2 lg:gap-12">
  <div class="flex flex-col items-center text-center">
   <div class="mb-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-blood bg-cream text-5xl shadow-xl">🐺</div>
-  <p class="font-display text-xl text-parchment">les</p>
-  <h1 class="logo-text text-6xl leading-none xl:text-8xl">Loups-Garous</h1>
+  <h1 class="logo-text whitespace-nowrap text-5xl leading-none sm:text-6xl lg:text-5xl xl:text-7xl">Loups-Garous</h1>
   <p class="mt-2 text-parchment/80">Un village, deux loups cachés… et cinq IA, loups ou villageois, à tes côtés ou contre toi.</p>
 
   <div role="note" class="mt-6 w-full rounded-xl border-2 border-blood bg-black px-4 py-3 text-left shadow-lg">
@@ -35,7 +34,7 @@
           <legend class="mb-1 font-display text-lg">Ton rôle</legend>
           <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {% for value, label in roles %}
-            <label class="inset cursor-pointer rounded-lg px-3 py-2 text-center has-[:checked]:ring-2 has-[:checked]:ring-ember">
+            <label class="inset cursor-pointer whitespace-nowrap rounded-lg px-2 py-2 text-center has-[:checked]:ring-2 has-[:checked]:ring-ember">
               <input type="radio" name="role" value="{{ value }}" class="sr-only"{% if forloop.first %} checked{% endif %}>
               {{ label }}
             </label>
