@@ -24,7 +24,7 @@ Projet réalisé dans le cadre de la formation Simplon.
 | `docs/` | Spécification du moteur, plans, répartition de l'équipe |
 
 Stack : Django 5.2, Django Channels + Daphne, Tailwind (`django-tailwind-cli`), WhiteNoise.
-Fournisseurs LLM : Groq (palier gratuit, liste de modèles) puis OpenRouter (modèles Gemma gratuits, 50 requêtes par jour) si tous les modèles Groq sont à quota.
+Fournisseurs LLM : Groq (palier gratuit, liste de modèles) puis OpenRouter (modèles Gemma gratuits, puis le routeur `openrouter/free` en dernier recours) si tous les modèles Groq sont à quota.
 
 > L'état de la partie vit **en mémoire** et la couche Channels est `InMemory` : une seule instance, **une seule partie à la fois**.
 > La base de données (PostgreSQL en production, SQLite en local) ne sert qu'au suivi des jetons consommés par manche.
