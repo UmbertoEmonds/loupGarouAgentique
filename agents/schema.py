@@ -23,9 +23,7 @@ _VALID_ACTION_TYPES = {action_type.value for action_type in ActionType}
 # gratuits (souvent entraînés en majorité sur du chinois) dérivent parfois
 # de langue en cours de génération malgré la consigne. Un message dominé
 # par des caractères CJK n'est pas un message jouable en français : on le
-# rejette comme un JSON mal formé, ce qui déclenche le même repli que pour
-# toute réponse invalide (voir agents/provider.py et le docstring de
-# resolve_wolf_phase/collect_votes pour le mécanisme de repli).
+# supprime (message à None) tout en conservant l'action éventuelle.
 _CJK_CHAR = re.compile(r"[一-鿿]")
 _CJK_MESSAGE_RATIO_THRESHOLD = 0.2
 
@@ -57,12 +55,20 @@ def parse_response(raw_text: str) -> dict:
     message = data["message"]
     if message is not None and not isinstance(message, str):
         raise ResponseParseError("'message' must be a string or null")
-    if message and _is_dominated_by_chinese(message):
-        raise ResponseParseError("'message' appears to have drifted into Chinese, not French")
 
     action = data["action"]
-    if action is None:
-        return data
+    if action is not None:
+        _validate_action(action)
+
+    # Un message dérivé en chinois est supprimé, mais l'action validée est
+    # conservée : la décision de jeu reste exploitable, seul le texte ne
+    # l'est pas.
+    if message and _is_dominated_by_chinese(message):
+        return {**data, "message": None}
+    return data
+
+
+def _validate_action(action) -> None:
     if not isinstance(action, dict):
         raise ResponseParseError("'action' must be an object or null")
     if set(action) != _ACTION_KEYS:
@@ -72,5 +78,3 @@ def parse_response(raw_text: str) -> dict:
     target = action["target"]
     if target is not None and not isinstance(target, str):
         raise ResponseParseError("'action.target' must be a string or null")
-
-    return data
