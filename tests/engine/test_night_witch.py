@@ -6,7 +6,9 @@ def make_state_with_witch(witch: str, others: list[str]) -> GameState:
     players = {witch: Player(id=witch, pseudo=witch, is_human=False, role=Role.SORCIERE, personality=None)}
     for pid in others:
         players[pid] = Player(id=pid, pseudo=pid, is_human=False, role=Role.VILLAGEOIS, personality=None)
-    return GameState(players=players, phase=Phase.NUIT_SORCIERE, cycle=1)
+    # Nuit 2 : la première nuit, une sorcière IA n'est pas consultée pour
+    # le poison (voir test_night_first_night.py).
+    return GameState(players=players, phase=Phase.NUIT_SORCIERE, cycle=2)
 
 
 class ScriptedProvider:

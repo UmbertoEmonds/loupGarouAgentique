@@ -43,6 +43,9 @@ def test_play_checks_victory_immediately_after_a_night_kill():
     # seule nuit sans lancer de cycle de jour.
     engine = GameEngine(rng=random.Random(1))
     state = engine.start("Umberto")
+    # Nuit 2 : la première nuit, les loups et le poison de la sorcière IA ne
+    # passent pas par le LLM, or ce test vérifie justement ces appels.
+    state.cycle = 2
     non_wolves = [p for p in state.players.values() if p.role != Role.LOUP]
     lone_survivor = non_wolves[0]
     for p in state.players.values():
@@ -114,6 +117,9 @@ def test_real_ai_action_provider_drives_a_full_night_and_day_cycle():
     affiché) puis un cycle de jour complet à travers le vrai moteur."""
     engine = GameEngine(rng=random.Random(7))
     state = engine.start("Umberto")
+    # Nuit 2 : la première nuit, les loups et le poison de la sorcière IA ne
+    # passent pas par le LLM, or ce test vérifie justement ces appels.
+    state.cycle = 2
 
     player_names = {pid: p.pseudo for pid, p in state.players.items()}
     player_roles = {pid: p.role for pid, p in state.players.items()}

@@ -10,7 +10,9 @@ def make_state_with_wolves(*wolves: str, others: list[str]) -> GameState:
         players[pid] = Player(id=pid, pseudo=pid, is_human=False, role=Role.LOUP, personality=None)
     for pid in others:
         players[pid] = Player(id=pid, pseudo=pid, is_human=False, role=Role.VILLAGEOIS, personality=None)
-    return GameState(players=players, phase=Phase.NUIT_LOUPS, cycle=1)
+    # Nuit 2 : la première nuit, les loups IA ne sont pas consultés
+    # (tirage au sort, voir test_night_first_night.py).
+    return GameState(players=players, phase=Phase.NUIT_LOUPS, cycle=2)
 
 
 def action(target: str) -> dict:
