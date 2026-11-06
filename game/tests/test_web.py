@@ -6,6 +6,10 @@ from django.test import Client, SimpleTestCase, override_settings
 from config.asgi import application
 from game.session import session
 
+# Humain loup : il est sollicité dès la première nuit, donc la partie scriptée
+# l'attend au lieu de se terminer en quelques millisecondes s'il était tué d'emblée.
+WOLF_ALICE = {"pseudo": "Alice", "role": "loup"}
+
 FAST = dict(FAKE_AI=True, FAKE_AI_DELAY_S=0, PHASE_PAUSE_S=0, HUMAN_TIMEOUT_S=30, DEBATE_DURATION_S=5)
 
 
@@ -56,27 +60,27 @@ class ViewTests(SimpleTestCase):
 
     def test_play_page_shows_ai_warning(self):
         owner = Client()
-        owner.post("/nouvelle-partie/", {"pseudo": "Alice"})
+        owner.post("/nouvelle-partie/", WOLF_ALICE)
         self.assertContains(owner.get("/jouer/"), "Tous les autres joueurs sont des IA")
 
     def test_second_visitor_sees_game_in_progress(self):
         owner, other = Client(), Client()
-        self.assertEqual(owner.post("/nouvelle-partie/", {"pseudo": "Alice"}).status_code, 302)
+        self.assertEqual(owner.post("/nouvelle-partie/", WOLF_ALICE).status_code, 302)
         self.assertEqual(owner.get("/jouer/").status_code, 200)
         self.assertContains(other.get("/"), "Partie déjà en cours")
         self.assertEqual(other.get("/jouer/").status_code, 302)
-        self.assertContains(other.post("/nouvelle-partie/", {"pseudo": "Bob"}, follow=True), "Partie déjà en cours")
+        self.assertContains(other.post("/nouvelle-partie/", {"pseudo": "Bob", "role": "loup"}, follow=True), "Partie déjà en cours")
 
     def test_owner_can_start_a_new_game_while_theirs_is_running(self):
         owner = Client()
-        owner.post("/nouvelle-partie/", {"pseudo": "Alice"})
-        resp = owner.post("/nouvelle-partie/", {"pseudo": "Alice2"})
+        owner.post("/nouvelle-partie/", WOLF_ALICE)
+        resp = owner.post("/nouvelle-partie/", {"pseudo": "Alice2", "role": "loup"})
         self.assertEqual(resp["Location"], "/jouer/")
         self.assertNotContains(owner.get("/"), "Partie déjà en cours")
 
     def test_no_resume_link_after_abandon(self):
         owner = Client()
-        owner.post("/nouvelle-partie/", {"pseudo": "Alice"})
+        owner.post("/nouvelle-partie/", WOLF_ALICE)
         self.assertContains(owner.get("/"), "Reprendre ma partie")
         owner.post("/abandonner/")
         self.assertNotContains(owner.get("/"), "Reprendre ma partie")
@@ -105,7 +109,7 @@ class WebSocketTests(SimpleTestCase):
         from asgiref.sync import sync_to_async
 
         client = Client()
-        await sync_to_async(client.post)("/nouvelle-partie/", {"pseudo": "Alice"})
+        await sync_to_async(client.post)("/nouvelle-partie/", WOLF_ALICE)
         comm = self._communicator(client)
         connected, _ = await comm.connect()
         self.assertTrue(connected)
@@ -132,8 +136,7 @@ class WebSocketTests(SimpleTestCase):
             answered += 1
         else:
             self.fail("la partie ne s'est pas terminée")
-        # Les rôles sont aléatoires : un humain tué dès la nuit 1 n'est jamais sollicité.
-        self.assertTrue(answered > 0 or not payload["me"]["alive"])
+        self.assertGreater(answered, 0)
         self.assertIn(payload["winner"], ("loups", "villageois"))
         await comm.disconnect()
 

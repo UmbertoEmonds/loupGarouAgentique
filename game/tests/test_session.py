@@ -2,7 +2,7 @@ import time
 
 from django.test import SimpleTestCase, override_settings
 
-from engine.models import Phase
+from engine.models import Phase, Role
 from game.session import session
 
 
@@ -33,16 +33,20 @@ class SessionTests(SimpleTestCase):
         # Fin de partie : tous les rôles sont révélés.
         self.assertTrue(all(p["role"] for p in snap["players"]))
 
+    @override_settings(HUMAN_TIMEOUT_S=30)
     def test_snapshot_hides_other_roles_and_wolf_room(self):
-        session.start("owner", "Alice")
-        snap = session.snapshot()
-        others = [p for p in snap["players"] if not p["is_me"] and p["alive"]]
-        if snap["me"]["role"] == "loup":
-            # Un loup connaît déjà ses alliés : seuls les autres loups sont révélés.
-            self.assertTrue(all((p["role"] == "loup") == (p["pseudo"] in snap["wolf_mates"]) for p in others))
-        else:
-            self.assertTrue(all(p["role"] is None for p in others))
-            self.assertIsNone(snap["wolf_log"])
+        # Loup et sorcière sont sollicités dès la première nuit : la partie les attend,
+        # donc l'état lu est bien celui d'une partie en cours (rôles pas encore révélés).
+        for role in (Role.LOUP, Role.SORCIERE):
+            session.start("owner", "Alice", role)
+            snap = session.snapshot()
+            others = [p for p in snap["players"] if not p["is_me"] and p["alive"]]
+            if role == Role.LOUP:
+                # Un loup connaît déjà ses alliés : seuls les autres loups sont révélés.
+                self.assertTrue(all((p["role"] == "loup") == (p["pseudo"] in snap["wolf_mates"]) for p in others))
+            else:
+                self.assertTrue(all(p["role"] is None for p in others))
+                self.assertIsNone(snap["wolf_log"])
 
     def test_second_start_refused_while_running_then_allowed_after_abandon(self):
         self.assertTrue(session.start("owner", "Alice"))
