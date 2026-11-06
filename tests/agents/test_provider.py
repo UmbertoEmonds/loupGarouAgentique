@@ -165,3 +165,25 @@ def test_get_action_formats_the_roster_as_id_space_parens_pseudo_not_a_colon_pai
     assert "Joueurs vivants : human (Umberto), ia_1 (Fatima)." in user_content
     assert "human:Umberto" not in user_content
     assert 'jamais "human (Umberto)"' in user_content
+
+
+def test_get_action_instructions_tell_the_model_to_use_pseudos_in_messages():
+    client = FakeClient(['{"message": null, "action": null}'])
+    provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.VILLAGEOIS}, {"ia_1": "stratege"})
+    context = {"phase": "jour_debat", "self_role": "villageois", "main_room_log": [],
+               "alive_players": [{"id": "ia_1", "pseudo": "Fatima"}]}
+    provider.get_action("ia_1", context)
+    assert "par leur pseudo, jamais par leur identifiant" in client.calls[0]["user_content"]
+
+
+def test_get_action_replaces_internal_ids_by_pseudos_in_the_message():
+    """Un modèle qui recopie "ia_1" dans son message ne doit pas faire
+    fuiter l'identifiant interne dans le chat."""
+    client = FakeClient(['{"message": "Je vise ia_1 pour éliminer Sarah, et human aussi.", '
+                         '"action": {"type": "night_kill_target", "target": "ia_1"}}'])
+    provider = AIActionProvider(client, {"ia_2": "Benji"}, {"ia_2": Role.LOUP}, {"ia_2": "stratege"})
+    context = {"phase": "nuit_loups", "self_role": "loup", "main_room_log": [],
+               "alive_players": [{"id": "ia_1", "pseudo": "Sarah"}, {"id": "human", "pseudo": "Capucine"}]}
+    result = provider.get_action("ia_2", context)
+    assert result["message"] == "Je vise Sarah pour éliminer Sarah, et Capucine aussi."
+    assert result["action"]["target"] == "ia_1"

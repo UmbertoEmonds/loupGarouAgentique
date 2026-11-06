@@ -15,6 +15,7 @@ de rôle.
 from __future__ import annotations
 
 import html
+import re
 
 from agents.client import OpenRouterClient, OpenRouterError
 from agents.prompts import assemble_system_prompt
@@ -121,7 +122,9 @@ class AIActionProvider:
             f"Phase actuelle : {phase}. Actions autorisées : {legal_action_types}. "
             f'IMPORTANT : le champ "target" doit être exactement un identifiant seul, '
             f'par exemple "{example_id}" — jamais "{example_id} ({example_pseudo})", '
-            "jamais le pseudo, jamais de parenthèses ni de ponctuation ajoutée."
+            "jamais le pseudo, jamais de parenthèses ni de ponctuation ajoutée. "
+            'Dans "message", en revanche, désigne toujours les joueurs par leur pseudo, '
+            "jamais par leur identifiant."
         )
 
     def _build_user_content(self, player_id: str, context: dict) -> str:
@@ -138,11 +141,26 @@ class AIActionProvider:
 
         return "\n".join(lines)
 
+    def _replace_ids_in_message(self, response: dict, context: dict) -> dict:
+        """Remplace les identifiants internes par les pseudos dans le message.
+
+        Même avec la consigne, un modèle gratuit recopie parfois "ia_1" dans
+        son message : l'identifiant ne doit jamais atteindre le chat. Le
+        champ "target" n'est pas touché, le moteur attend bien l'id.
+        """
+        message = response.get("message")
+        if not message:
+            return response
+        for player in context.get("alive_players", []):
+            message = re.sub(rf"\b{re.escape(player['id'])}\b", player["pseudo"], message)
+        return {**response, "message": message}
+
     def get_action(self, player_id: str, context: dict) -> dict | None:
         try:
             system_prompt = self._system_prompts[player_id]
             user_content = self._build_user_content(player_id, context)
-            return parse_response(self._client.complete(system_prompt, user_content))
+            response = parse_response(self._client.complete(system_prompt, user_content))
+            return self._replace_ids_in_message(response, context)
         except (OpenRouterError, ResponseParseError):
             # Les deux échecs attendus : l'API n'a rien rendu d'exploitable,
             # ou le modèle n'a pas respecté le contrat JSON.
