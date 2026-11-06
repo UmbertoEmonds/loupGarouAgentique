@@ -210,3 +210,11 @@ def test_wolf_is_not_given_the_day_warning_at_night_nor_to_non_wolves():
     provider.get_action("ia_1", _day_context("villageois", "jour_debat"))
     for call in client.calls:
         assert "lu par tout le village" not in call["user_content"]
+
+
+def test_dead_players_and_their_roles_are_rendered():
+    client = FakeClient(['{"message": null, "action": null}'])
+    provider = AIActionProvider(client, {"ia_1": "Fatima"}, {"ia_1": Role.VILLAGEOIS}, {"ia_1": "stratege"})
+    context = {**_day_context("villageois"), "dead_players": [{"id": "ia_2", "pseudo": "Sarah", "role": "loup"}]}
+    provider.get_action("ia_1", context)
+    assert "Joueurs morts (rôle révélé) : Sarah (loup)." in client.calls[0]["user_content"]

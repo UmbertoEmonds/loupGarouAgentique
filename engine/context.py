@@ -32,6 +32,11 @@ def build_context(
         "alive_players": [
             {"id": p.id, "pseudo": p.pseudo} for p in state.players.values() if p.alive
         ],
+        # Le rôle d'un mort est révélé à tout le village (comme pour l'humain à l'écran).
+        "dead_players": [
+            {"id": p.id, "pseudo": p.pseudo, "role": p.role.value}
+            for p in state.players.values() if not p.alive
+        ],
         "main_room_log": state.main_room_log,
         # Seuls les loups voient leur salon privé.
         "wolf_room_log": state.wolf_room_log if is_wolf else None,

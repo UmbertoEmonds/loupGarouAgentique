@@ -103,6 +103,15 @@ class AIActionProvider:
                 lines.extend(self._render_log(entries, pseudo_lookup))
         return lines
 
+    def _dead_lines(self, context: dict) -> list[str]:
+        """Les morts et leur rôle, révélé publiquement à leur mort."""
+        dead = context.get("dead_players") or []
+        if not dead:
+            return []
+        labels = {"sorciere": "sorcière"}
+        listed = ", ".join(f"{d['pseudo']} ({labels.get(d['role'], d['role'])})" for d in dead)
+        return [f"Joueurs morts (rôle révélé) : {listed}."]
+
     def _wolf_target_lines(self, context: dict, pseudo_lookup: dict[str, str]) -> list[str]:
         """Réservé à la sorcière : qui les loups ont désigné cette nuit."""
         target = context.get("wolf_target_tonight")
@@ -146,6 +155,7 @@ class AIActionProvider:
         lines += self._allies_lines(context, pseudo_lookup)
         lines += self._room_lines(context, pseudo_lookup)
         lines.append(f"Joueurs vivants : {self._format_roster(alive_players)}.")
+        lines += self._dead_lines(context)
         lines += self._wolf_target_lines(context, pseudo_lookup)
         lines.append(self._instructions_line(context, alive_players))
 

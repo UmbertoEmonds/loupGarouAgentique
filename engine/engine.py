@@ -77,11 +77,19 @@ class GameEngine:
         votes, fallback_used = day.collect_votes(state, provider, rng=self.rng)
         eliminated = day.resolve_vote(votes)
 
+        # Comme autour d'une vraie table, les votes sont publics : tout le monde
+        # (IA comprises, via le salon principal) peut s'en servir les jours suivants.
+        pseudo = lambda pid: state.players[pid].pseudo
+        ballots = ", ".join(f"{pseudo(voter)} → {pseudo(target)}" for voter, target in votes.items())
+        state.main_room_log.append({"author": None, "text": f"🗳️ Votes : {ballots}."})
+
         if eliminated is not None:
             state.players[eliminated].alive = False
             state.main_room_log.append(
                 {"author": None, "text": f"{state.players[eliminated].pseudo} a été éliminé par le vote."}
             )
+        else:
+            state.main_room_log.append({"author": None, "text": "Égalité : personne n'est éliminé aujourd'hui."})
 
         return eliminated, fallback_used
 
