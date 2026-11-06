@@ -125,7 +125,7 @@ class AIStatsTests(SimpleTestCase):
         gen = session._gen
         session._record_ai_call(gen, "vendor/model-a", {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10})
         session._record_ai_call(gen, "vendor/model-b", {"prompt_tokens": 4, "completion_tokens": 1})
-        stats = session.snapshot()["ai_stats"]
+        stats = session._public_ai_stats(Phase.JOUR_DEBAT)
         self.assertEqual(stats, {"model": "vendor/model-b", "calls": 2, "total_tokens": 15})
 
     def test_calls_from_an_older_game_are_ignored(self):
@@ -134,3 +134,13 @@ class AIStatsTests(SimpleTestCase):
         session.start("owner", "Alice")
         session._record_ai_call(old_gen, "old", {"total_tokens": 99})
         self.assertEqual(session.snapshot()["ai_stats"]["total_tokens"], 0)
+
+    def test_stats_are_frozen_at_night_so_they_reveal_nothing(self):
+        session.start("owner", "Alice")
+        gen = session._gen
+        session._record_ai_call(gen, "jour", {"total_tokens": 10})
+        self.assertEqual(session._public_ai_stats(Phase.JOUR_DEBAT)["total_tokens"], 10)
+        session._record_ai_call(gen, "nuit", {"total_tokens": 5})
+        self.assertEqual(session._public_ai_stats(Phase.NUIT_SORCIERE),
+                         {"model": "jour", "calls": 1, "total_tokens": 10})
+        self.assertEqual(session._public_ai_stats(Phase.JOUR_DEBAT)["total_tokens"], 15)
