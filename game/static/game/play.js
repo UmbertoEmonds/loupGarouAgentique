@@ -144,6 +144,23 @@
     e.classList.remove("hidden");
   }
 
+  // Dernier évènement de narration, affiché sous « Le village » : icône + légende.
+  function renderLastEvent(log) {
+    const box = $("last-event");
+    const last = [...log].reverse().find((e) => e.author === null);
+    if (!last) { box.classList.add("hidden"); box.classList.remove("flex"); return; }
+    const m = last.text.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+    let icon = m ? m[1] : "📜", text = m ? m[2] : last.text;
+    if (!m) {
+      if (/éliminé/.test(text)) icon = "🗳️";
+      else if (/mort/.test(text) && !/Personne/.test(text)) icon = "💀";
+      else if (/Personne/.test(text)) icon = "🕊️";
+    }
+    $("last-event-icon").textContent = icon;
+    $("last-event-text").textContent = text;
+    box.classList.remove("hidden"); box.classList.add("flex");
+  }
+
   function renderAiStats(stats) {
     const chip = $("ai-stats");
     const tokens = stats.total_tokens.toLocaleString("fr-FR");
@@ -155,6 +172,7 @@
     const s = state;
     if (!s || !s.active) { location.href = "/"; return; }
     renderAiStats(s.ai_stats);
+    renderLastEvent(s.main_log);
     $("scene").classList.toggle("night", s.is_night);
     $("scene").classList.toggle("day", !s.is_night);
     $("ai-down").classList.toggle("hidden", !s.ai_down);

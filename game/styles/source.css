@@ -100,19 +100,16 @@
 /* Message du joueur dans les salons */
 .msg-mine { background: rgb(125 21 17 / .6); }
 
-/* Narration (« le village s'endort… ») : bandeau bien visible, centré */
+/* Narration (« le village s'endort… ») : ligne discrète, le dernier évènement est
+   aussi mis en avant sous « Le village » */
 .narration {
-  font-family: var(--font-display);
   text-align: center;
-  font-size: 1.05rem;
+  font-size: .85rem;
+  font-style: italic;
   line-height: 1.3;
-  padding: .35rem .8rem;
-  margin: .3rem 0;
-  border-radius: .75rem;
-  color: var(--color-cream);
-  background: rgb(242 160 87 / .14);
-  border: 1px solid rgb(242 160 87 / .55);
-  text-shadow: 0 0 8px rgb(242 160 87 / .45);
+  padding: .1rem .5rem;
+  margin: .15rem 0;
+  color: rgb(247 223 189 / .65);
 }
 
 /* Fond texturé charbon/rouge, plus sombre la nuit */
