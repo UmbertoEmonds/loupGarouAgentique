@@ -124,3 +124,16 @@ def test_a_dead_wolf_is_never_asked_for_a_target_and_the_lone_survivor_can_agree
     provider = ScriptedWolfProvider({"ia_1": [], "ia_2": [action("ia_3")]})
     result = resolve_wolf_phase(state, provider, rng=random.Random(1))
     assert result == "ia_3"
+
+
+def test_each_valid_proposal_is_announced_in_the_wolf_room():
+    """Sans ça, un loup ne voit pas la cible choisie par son allié (seul le
+    texte du message est publié) et peut prétendre l'approuver à tort."""
+    state = make_state_with_wolves("ia_1", "ia_2", others=["ia_3", "ia_4"])
+    provider = ScriptedWolfProvider({
+        "ia_1": [action("ia_3"), action("ia_3")],
+        "ia_2": [action("ia_4"), action("ia_3")],
+    })
+    resolve_wolf_phase(state, provider, rng=random.Random(1))
+    assert {"author": None, "text": "ia_1 propose ia_3."} in state.wolf_room_log
+    assert {"author": None, "text": "ia_2 propose ia_4."} in state.wolf_room_log
