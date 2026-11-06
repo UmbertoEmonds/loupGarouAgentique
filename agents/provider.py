@@ -60,13 +60,17 @@ class AIActionProvider:
     def _format_roster(self, entries: list[dict]) -> str:
         return ", ".join(self._format_player(e["id"], e["pseudo"]) for e in entries)
 
-    def _render_log(self, entries: list[dict], pseudo_lookup: dict[str, str]) -> list[str]:
+    def _render_log(self, entries: list[dict], pseudo_lookup: dict[str, str], player_id: str) -> list[str]:
         lines = []
         for entry in entries:
             author_id = entry.get("author")
             label = (
                 NARRATEUR_LABEL if author_id is None else self._pseudo(author_id, pseudo_lookup)
             )
+            if author_id == player_id:
+                # Sans ce repère, un modèle se répétait (re-saluer à chaque tour) ou
+                # se perdait au point de se proposer lui-même comme victime.
+                label += " (toi)"
             text = entry.get("text") or ""
             # Échappe le label et le texte avant de les interpoler dans la
             # balise <message auteur="...">: c'est la frontière anti-
@@ -91,7 +95,7 @@ class AIActionProvider:
         )
         return [f"Tes alliés loups : {allies}."]
 
-    def _room_lines(self, context: dict, pseudo_lookup: dict[str, str]) -> list[str]:
+    def _room_lines(self, context: dict, pseudo_lookup: dict[str, str], player_id: str) -> list[str]:
         """Les salons auxquels ce joueur a accès, chacun sous son propre intitulé."""
         lines: list[str] = []
         for titre, entries in (
@@ -100,7 +104,7 @@ class AIActionProvider:
         ):
             if entries:
                 lines.append(titre)
-                lines.extend(self._render_log(entries, pseudo_lookup))
+                lines.extend(self._render_log(entries, pseudo_lookup, player_id))
         return lines
 
     def _dead_lines(self, context: dict) -> list[str]:
@@ -153,7 +157,7 @@ class AIActionProvider:
 
         lines: list[str] = []
         lines += self._allies_lines(context, pseudo_lookup)
-        lines += self._room_lines(context, pseudo_lookup)
+        lines += self._room_lines(context, pseudo_lookup, player_id)
         lines.append(f"Joueurs vivants : {self._format_roster(alive_players)}.")
         lines += self._dead_lines(context)
         lines += self._wolf_target_lines(context, pseudo_lookup)

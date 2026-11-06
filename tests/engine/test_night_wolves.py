@@ -137,3 +137,37 @@ def test_each_valid_proposal_is_announced_in_the_wolf_room():
     resolve_wolf_phase(state, provider, rng=random.Random(1))
     assert {"author": None, "text": "ia_1 propose ia_3."} in state.wolf_room_log
     assert {"author": None, "text": "ia_2 propose ia_4."} in state.wolf_room_log
+
+
+def test_each_negotiation_round_is_announced_in_the_wolf_room():
+    state = make_state_with_wolves("ia_1", "ia_2", others=["ia_3", "ia_4"])
+    provider = ScriptedWolfProvider({
+        "ia_1": [action("ia_3"), action("ia_3")],
+        "ia_2": [action("ia_4"), action("ia_3")],
+    })
+    resolve_wolf_phase(state, provider, rng=random.Random(1))
+    texts = [e["text"] for e in state.wolf_room_log if e["author"] is None]
+    assert "Tour de concertation 1/3." in texts
+    assert "Tour de concertation 2/3." in texts
+    assert "Tour de concertation 3/3." not in texts
+
+
+def test_the_random_tiebreak_is_announced_in_the_wolf_room():
+    state = make_state_with_wolves("ia_1", "ia_2", others=["ia_3", "ia_4"])
+    provider = ScriptedWolfProvider({
+        "ia_1": [action("ia_3")] * 3,
+        "ia_2": [action("ia_4")] * 3,
+    })
+    target = resolve_wolf_phase(state, provider, rng=random.Random(1))
+    assert state.wolf_room_log[-1] == {
+        "author": None,
+        "text": f"Pas d'accord après 3 tours : le sort désigne {target}.",
+    }
+
+
+def test_each_night_is_announced_in_the_wolf_room():
+    state = make_state_with_wolves("ia_1", "ia_2", others=["ia_3", "ia_4"])
+    state.cycle = 2
+    provider = ScriptedWolfProvider({"ia_1": [action("ia_3")], "ia_2": [action("ia_3")]})
+    resolve_wolf_phase(state, provider, rng=random.Random(1))
+    assert state.wolf_room_log[0] == {"author": None, "text": "🌙 Nuit 2"}

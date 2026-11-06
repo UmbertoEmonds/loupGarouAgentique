@@ -49,3 +49,28 @@ def test_impulsive_personalities_never_reveal_their_role():
 def test_calculated_reveals_remain_possible_for_strategic_personalities():
     for slug in ("stratege", "manipulateur"):
         assert "tu peux révéler ton rôle réel" in PERSONALITY_FRAGMENTS[slug], slug
+
+
+def test_personality_never_replaces_actual_play():
+    assert "ne remplace pas le jeu" in PROMPT_GENERAL_TEMPLATE
+    assert "faire avancer la partie" in PROMPT_GENERAL_TEMPLATE
+
+
+def test_each_day_starts_by_reacting_to_the_night():
+    assert "évènements de la nuit" in PROMPT_GENERAL_TEMPLATE
+
+
+def test_out_of_universe_wording_is_forbidden():
+    assert "univers du village" in PROMPT_GENERAL_TEMPLATE
+
+
+def test_grammatical_gender_follows_the_character():
+    assert "une joueuse" in assemble_system_prompt("Ines", Role.VILLAGEOIS, "stratege")
+    assert "une joueuse" in assemble_system_prompt("Sarah", Role.LOUP, "impatient")
+    assert "un joueur" in assemble_system_prompt("Benji", Role.VILLAGEOIS, "stratege")
+
+
+def test_impulsive_reflexes_are_triggered_by_the_situation():
+    assert "dès que le débat traîne" in PERSONALITY_FRAGMENTS["impatient"]
+    assert "tu veux voter tout de suite" not in PERSONALITY_FRAGMENTS["impatient"]
+    assert "Seulement quand on te soupçonne" in PERSONALITY_FRAGMENTS["mauvais_joueur"]
